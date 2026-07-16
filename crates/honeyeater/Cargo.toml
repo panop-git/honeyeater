@@ -1,0 +1,19 @@
+[package]
+name = "honeyeater"
+description = "DSP primitives for radio-frequency and electrical signals. Filters, transforms, modulation, forward error correction, channel models. CPU-side processing of sample streams from radios, digitisers, and simulators."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+honeyeater-core = { path = "../honeyeater-core", version = "0.0.0" }
+
+[lints]
+workspace = true

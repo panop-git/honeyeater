@@ -1,0 +1,11 @@
+[package]
+name = "oracle-gen-placeholder"
+description = "Placeholder binary so the oracle-gen workspace builds. Will be replaced by real oracle generators (libfec, AFF3CT, etc.) at Phase 1."
+version = "0.0.0"
+edition.workspace = true
+publish = false
+license.workspace = true
+
+[[bin]]
+name = "oracle-gen-placeholder"
+path = "src/main.rs"

@@ -1,0 +1,20 @@
+[package]
+name = "honeyeater-core"
+description = "Core sample types, signal traits, and tolerance vocabulary for the honeyeater DSP library."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+[dependencies]
+num-complex = { workspace = true }
+rustfft = { workspace = true }
+
+[lints]
+workspace = true

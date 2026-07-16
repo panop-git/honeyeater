@@ -1,0 +1,21 @@
+[package]
+name = "honeyeater-test"
+description = "Cross-validation helpers and tolerance assertion macros for the honeyeater DSP library. Dev-only; not intended for use outside honeyeater's own test suite."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+publish = false
+
+[dependencies]
+honeyeater-core = { path = "../honeyeater-core", version = "0.0.0" }
+num-complex = { workspace = true }
+
+[lints]
+workspace = true

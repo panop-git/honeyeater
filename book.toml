@@ -1,0 +1,37 @@
+# mdBook configuration for the honeyeater narrative documentation.
+#
+# The book's source files live in docs/, alongside the markdown documents
+# that contributors edit directly. This avoids a separate src/ tree and keeps
+# the README/CONTRIBUTING.md cross-references working unchanged.
+#
+# `cargo doc` produces the API reference; this book produces the narrative
+# documentation. The two are complementary.
+
+[book]
+title = "honeyeater"
+description = "Narrative documentation for the honeyeater DSP library."
+authors = ["The honeyeater contributors"]
+language = "en"
+src = "docs"
+
+[output.html]
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/panop-git/honeyeater"
+edit-url-template = "https://github.com/panop-git/honeyeater/edit/main/{path}"
+site-url = "/"
+additional-css = ["assets/css/custom.css"]
+sidebar-header-nav = true
+mathjax-support = true
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 2
+boost-paragraph = 1
+
+[output.html.fold]
+enable = true
+level = 1

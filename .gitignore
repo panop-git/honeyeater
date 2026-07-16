@@ -1,0 +1,26 @@
+# Rust / Cargo
+/target
+**/target
+Cargo.lock.bak
+**/*.rs.bk
+*.pdb
+
+# Criterion output
+**/criterion
+
+# mdBook output
+/book
+
+# Cloudflare Pages build artefacts (downloaded mdBook binary)
+/.cloudflare/bin
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local environment overrides
+.env
+.env.local

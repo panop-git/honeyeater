@@ -1,0 +1,22 @@
+{
+  // Cloudflare Workers Assets configuration for the honeyeater narrative
+  // documentation. The site is a fully static mdBook build — no Worker
+  // runtime code, no server-side logic — so the entire deploy is just
+  // serving the contents of the build output directory as static assets.
+  //
+  // The build itself runs via .cloudflare/build-docs.sh, which fetches a
+  // pinned mdBook release and produces ./book/. This file then tells
+  // Wrangler to publish ./book/ as the asset bundle.
+  //
+  // Access control is configured on the Cloudflare dashboard side
+  // (Settings → Access policy), not in this file.
+
+  "name": "honeyeater",
+  "compatibility_date": "2025-09-27",
+  "assets": {
+    "directory": "book"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

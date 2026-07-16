@@ -1,0 +1,8 @@
+[workspace]
+resolver = "3"
+members = ["placeholder"]
+
+[workspace.package]
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"

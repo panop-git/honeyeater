@@ -1,0 +1,34 @@
+/* Custom CSS for the honeyeater mdBook. Listed in book.toml under
+   [output.html] additional-css, so it's appended after mdBook's default
+   stylesheets — additive, not a theme replacement. */
+
+/* Widen the content column. The default ~750px was sized for monitors of an
+   earlier era; on a modern 1080p+ display it leaves substantial empty space
+   either side of the text. 950px keeps lines under the 80-character
+   readability bound on prose pages while giving wider tables (notably the
+   Q-format constants table in architecture-planning.md) room to fit
+   without the layout pushing content off-page.
+
+   mdBook's content sits inside .content with `max-width: var(--content-max-width)`
+   set on the inner page wrapper; overriding the variable on :root is the
+   intended hook. */
+:root {
+    --content-max-width: 950px;
+}
+
+/* Responsive table overflow.
+
+   Markdown tables in mdBook render as raw <table> elements that don't
+   shrink — wide tables (like the Q-format constants table) overflow the
+   content column on narrow viewports, pushing content right or breaking
+   the page layout. Wrapping the table in a horizontally-scrollable block
+   bounds the damage: on wide viewports the table sits inline as expected;
+   on narrow viewports a horizontal scroll appears within the table's own
+   bounds, leaving the surrounding prose at the correct width.
+
+   Applied to all tables in the main content area, not the sidebar TOC. */
+main table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}

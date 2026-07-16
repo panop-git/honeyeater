@@ -1,0 +1,76 @@
+# cargo-deny configuration for the honeyeater workspace.
+#
+# Rationale for the choices below lives in docs/policies.md, "Dependency
+# policy and licences". This file is the mechanical enforcement; that doc is
+# the source of truth for *why* each rule exists.
+
+[graph]
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Licences
+# ---------------------------------------------------------------------------
+# honeyeater is dual-licensed MIT OR Apache-2.0. To keep that story honest,
+# every crate in the transitive dependency tree must be under a permissive
+# licence too. Anything not on this list fails the build and forces the
+# decision into the open.
+
+[licenses]
+version = 2
+confidence-threshold = 0.93
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "Zlib",
+    "0BSD",
+    "CC0-1.0",
+]
+
+# Notable exclusions (not listed above) are deliberate:
+#   - GPL family (GPL-*, LGPL-*, AGPL-*): copyleft, incompatible with the
+#     library's permissive story. LGPL specifically is used only via the
+#     out-of-band tools/oracle-gen/ workspace (architecture decision 10).
+#   - MPL-2.0: file-level copyleft. Weaker than LGPL but still imposes
+#     publication obligations on modifications.
+#   - CDDL, SSPL, Elastic-2.0, BUSL-1.1: copyleft, source-available, or
+#     anti-cloud licences.
+
+# ---------------------------------------------------------------------------
+# Advisories
+# ---------------------------------------------------------------------------
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []
+
+# ---------------------------------------------------------------------------
+# Bans
+# ---------------------------------------------------------------------------
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+deny = []
+skip = []
+skip-tree = []
+
+# ---------------------------------------------------------------------------
+# Sources
+# ---------------------------------------------------------------------------
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

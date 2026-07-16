@@ -1,0 +1,19 @@
+# Rustfmt configuration for honeyeater.
+#
+# Kept minimal: most of these are defaults. The explicit settings are the
+# ones where the default doesn't suit a numerical library (wider lines for
+# coefficient tables) or where consistency matters more than the choice
+# (import grouping).
+
+edition = "2024"
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+reorder_imports = true
+
+# Unstable options worth adopting when they stabilise (currently nightly-only,
+# so omitted here to keep stable rustfmt warning-free):
+#   group_imports = "StdExternalCrate"
+#   imports_granularity = "Module"
+#   wrap_comments = true
