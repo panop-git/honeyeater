@@ -14,7 +14,7 @@ readme = "README.md"
 
 [dependencies]
 num-complex = { workspace = true }
-rustfft = { workspace = true }
+phastft = "0.4.0"
 
 [lints]
 workspace = true

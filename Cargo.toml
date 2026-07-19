@@ -19,7 +19,6 @@ categories = ["science", "mathematics", "no-std::no-alloc"]
 
 [workspace.dependencies]
 num-complex = "0.4.6"
-rustfft = "6.4.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
