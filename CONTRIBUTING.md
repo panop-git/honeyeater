@@ -1,8 +1,6 @@
 # Contributing to honeyeater
 
-honeyeater is pre-v0.0.1. The current working tree is a private development workspace; the public repository will be cut when the milestone in `docs/roadmap.md` (CCSDS Reed-Solomon (255, 223) encoder, bit-exact) is achieved.
-
-This document is structured for the post-cut state. Until then, contributions happen via direct collaboration.
+honeyeater is pre-v0.0.1. Expect APIs, crate layout, and this document to change without notice until the milestone in `docs/roadmap.md` (CCSDS Reed-Solomon (255, 223) encoder, bit-exact) cuts 0.0.1.
 
 ## Read these first
 
@@ -10,6 +8,19 @@ This document is structured for the post-cut state. Until then, contributions ha
 - [`docs/roadmap.md`](docs/roadmap.md) — the implementation plan, kernel ordering, tolerance vocabulary, and per-category oracle stack. The source of truth for "how do we test this?" and "is this on the milestone path?"
 - [`docs/architecture-planning.md`](docs/architecture-planning.md) — numbered design decisions with rationale. If you want to deviate from one, the deviation must update that file with reasoning.
 - [`docs/policies.md`](docs/policies.md) — cross-cutting policies: `unsafe`, clippy posture, licence allowlist, MSRV, panic vs `Result`, deprecation. These are not negotiable per PR; if you want to change one, propose the policy change first.
+
+## Previewing the documentation locally
+
+The documents above are published as a book at [honeyeater.dev](https://honeyeater.dev), built from the `docs/` directory with [mdBook](https://rust-lang.github.io/mdBook/). To preview documentation edits with live reload:
+
+```sh
+cargo install mdbook    # one-time; compiles from source, takes a few minutes
+mdbook serve --open     # run from the repository root
+```
+
+The book opens at `http://localhost:3000` and rebuilds automatically whenever a file in `docs/` changes.
+
+If `cargo` is not on your machine yet, install the Rust toolchain with [rustup](https://rustup.rs) — you will need it to build the library anyway. `cargo install` fetches a tool from crates.io, compiles it, and puts the binary on your `PATH` (in `~/.cargo/bin`). Any recent mdBook release is fine for previewing; CI separately verifies the book builds against a pinned version.
 
 ## How a change lands
 
@@ -27,7 +38,7 @@ This document is structured for the post-cut state. Until then, contributions ha
    ```
 
    CI runs the same set across stable, the pinned MSRV, and nightly. Local stable is usually enough; the MSRV check catches "I used a feature added in a newer Rust" and the nightly check catches future lint changes early.
-5. **Update CHANGELOG.md.** Pre-0.1.0, every change goes under `## [Unreleased]`. Use the Keep-a-Changelog sections (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
+5. **Bump the version and update CHANGELOG.md.** The `[workspace.package]` version in the root `Cargo.toml` is the single source of truth — every crate inherits it, and CI enforces the rules here. A functional PR increments it (patch bump pre-0.1.0) and records its changes under a matching `## [<new version>]` heading in `CHANGELOG.md`, using the Keep-a-Changelog sections (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`). Two exemptions from the bump: docs-only diffs (CI detects these automatically), and other non-functional changes, which a maintainer marks with the `non-functional` PR label. Notes that don't belong to any version yet can sit under `## [Unreleased]` until a functional PR rolls them into its version section.
 6. **Open the PR.** One change per PR. Smaller PRs land faster.
 
 ## What this project does not accept

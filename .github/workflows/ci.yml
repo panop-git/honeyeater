@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # labeled/unlabeled so toggling the non-functional label re-runs the
+    # version-discipline check; the rest are the pull_request defaults.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 env:
   CARGO_TERM_COLOR: always
@@ -110,10 +113,57 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BEFORE_SHA: ${{ github.event.before }}
 
+  # Version discipline (CONTRIBUTING.md, "Versioning"). The [workspace.package]
+  # version in the root Cargo.toml is the single source of truth. Two checks:
+  # CHANGELOG.md's newest release heading must match it, and every functional
+  # PR into main must increment it. Docs-only diffs are exempt automatically;
+  # other non-functional changes are exempted with the 'non-functional' label.
+  version:
+    name: version discipline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CHANGELOG.md references the Cargo.toml version
+        run: |
+          manifest=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          changelog=$(grep -m1 -E '^## \[[0-9]' CHANGELOG.md | sed -E 's/^## \[([^]]+)\].*/\1/')
+          if [ "$manifest" != "$changelog" ]; then
+            echo "::error::Cargo.toml [workspace.package] version is $manifest but CHANGELOG.md's newest release heading is [$changelog]; add or fix the CHANGELOG section for $manifest"
+            exit 1
+          fi
+      - name: Functional PRs increment the version
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'non-functional')
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          functional=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" \
+            | grep -vE '^(docs/|assets/|\.github/|\.cloudflare/)' \
+            | grep -vE '^(book\.toml|wrangler\.jsonc|\.gitignore|DCO\.txt|LICENSE-.+)$' \
+            | grep -vE '\.md$' || true)
+          if [ -z "$functional" ]; then
+            echo "docs-only diff; version bump not required"
+            exit 0
+          fi
+          base=$(git show "$BASE_SHA:Cargo.toml" | grep -m1 '^version = ' | cut -d'"' -f2)
+          head=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          # Bootstrap release: the first release establishes 0.0.0 and has no
+          # prior version to increment from, so the bump rule cannot apply.
+          if [ "$base" = "0.0.0" ] && [ "$head" = "0.0.0" ]; then
+            echo "bootstrap release at 0.0.0; version bump not required"
+            exit 0
+          fi
+          highest=$(printf '%s\n%s\n' "$base" "$head" | sort -V | tail -n1)
+          if [ "$base" = "$head" ] || [ "$highest" != "$head" ]; then
+            echo "::error::functional change without a version increment (main is at $base, this PR has $head); bump [workspace.package] version in the root Cargo.toml, or apply the 'non-functional' label if nothing shipped changes"
+            exit 1
+          fi
+
   # Verifies the mdBook narrative documentation builds. Deployment is handled
-  # out-of-band by Cloudflare Pages (its Git integration watches the repo
-  # directly and runs `mdbook build` in its own runners). See README.md and
-  # docs/policies.md for the hosting rationale.
+  # out-of-band by Cloudflare Workers Builds (its Git integration watches the
+  # repo directly and runs .cloudflare/build-docs.sh in its own runners).
   book:
     name: mdbook build
     runs-on: ubuntu-latest

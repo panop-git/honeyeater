@@ -30,6 +30,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "honeyeater-cuda"
+version = "0.0.0"
+
+[[package]]
 name = "honeyeater-test"
 version = "0.0.0"
 dependencies = [

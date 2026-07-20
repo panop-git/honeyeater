@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/honeyeater",
     "crates/honeyeater-core",
+    "crates/honeyeater-cuda",
     "crates/honeyeater-test",
 ]
 
@@ -12,10 +13,10 @@ edition = "2024"
 rust-version = "1.91"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/panop-git/honeyeater"
-homepage = "https://github.com/panop-git/honeyeater"
+homepage = "https://honeyeater.dev"
 authors = ["The honeyeater contributors"]
 keywords = ["dsp", "sdr", "radio", "signal-processing", "fft"]
-categories = ["science", "mathematics", "no-std::no-alloc"]
+categories = ["science", "mathematics"]
 
 [workspace.dependencies]
 num-complex = "0.4.6"
