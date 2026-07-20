@@ -32,3 +32,18 @@ main table {
     overflow-x: auto;
     max-width: 100%;
 }
+
+/* Version / last-updated footer line.
+
+   Injected at the end of .content by assets/js/version.js, carrying the
+   library version (from Cargo.toml) and the docs' last-updated date (the
+   commit date of docs/). Styled as muted metadata, separated from the body
+   text by a rule so it reads as a page footer. */
+.honeyeater-version {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sidebar-non-existant, rgba(128, 128, 128, 0.2));
+    font-size: 0.85em;
+    color: var(--sidebar-fg, #888);
+    opacity: 0.75;
+}

@@ -2,7 +2,7 @@
 
 ## Status
 
-Pre-v0.0.1. Private development workspace. No code yet; no scaffolding files (no `Cargo.toml`, no CI). When a 0.0.1 release is ready, a new public repository will be created and the codebase migrated.
+Pre-v0.0.1. Phase 0 (workspace scaffolding, CI, test harness) is complete except crates.io name reservation (Phase 0 item 8); Phase 1 kernels have not started.
 
 ## The plan in one sentence
 
@@ -22,15 +22,15 @@ Additional crates split out when real dependency boundaries appear (a CUDA backe
 
 A separate `tools/oracle-gen/` workspace, **outside the published crate set**, holds scripts that run libfec (LGPL) and other non-permissive oracles to produce binary test fixtures. The library's link graph never touches LGPL code. This pattern is used by `ring` for NIST CAVP vectors.
 
-## Test methodology (planned)
+## Test methodology
 
-Nothing in this section is implemented yet. It describes the intended shape of the test harness once it is built in Phase 0.
+The tolerance vocabulary below is implemented in `honeyeater-test`; see [testing.md](testing.md) for how to use it. The default thresholds and the reproducibility mitigations further down are still intentions — nothing exercises them until Phase 1 kernels exist.
 
 ### Tolerance vocabulary
 
-A small, fixed set of measures, intended to be used consistently across the codebase once implemented. Per-test thresholds will be documented per kernel; the set of measures themselves should be stable:
+A small, fixed set of measures, used consistently across the codebase. Per-test thresholds will be documented per kernel; the set of measures themselves should be stable:
 
-| Macro (planned) | Predicate | Intended for |
+| Macro | Predicate | Intended for |
 |---|---|---|
 | `assert_close` | `\|a − b\| ≤ atol + rtol·\|b\|`, elementwise (numpy/MATLAB convention) | pointwise array comparison: FIR/IIR output, FFT bins, resampler output, window taps |
 | `assert_snr_db` | `10·log10(Σ\|ref\|² / Σ\|ref − actual\|²) ≥ min_db` | structured signal-vs-reference: filters, FFT round-trips, resamplers, modulators, AGC |
@@ -40,7 +40,7 @@ A small, fixed set of measures, intended to be used consistently across the code
 | `assert_parseval` | one-sided PSD integral ≈ time-domain energy | spectral estimators (resolves the scipy/MATLAB/Octave Welch-scaling trap) |
 | `assert_distribution_ks` | Kolmogorov-Smirnov test against target CDF | PRNGs, AWGN generators, noise sources |
 
-Percentage (relative) tolerance is **not** the planned default. The field consensus (numpy, scipy, MATLAB, EBU, liquid-dsp) is the mixed predicate above for pointwise tests, because percentage breaks on zero crossings and is insensitive to dynamic range. Percentage survives only as an aggregate scalar metric (EVM, BER, loudness offsets) where it is genuinely appropriate.
+Percentage (relative) tolerance is **not** the default. The field consensus (numpy, scipy, MATLAB, EBU, liquid-dsp) is the mixed predicate above for pointwise tests, because percentage breaks on zero crossings and is insensitive to dynamic range. Percentage survives only as an aggregate scalar metric (EVM, BER, loudness offsets) where it is genuinely appropriate.
 
 ### Default thresholds per module class (intended)
 
@@ -62,7 +62,7 @@ Percentage (relative) tolerance is **not** the planned default. The field consen
 
 ### Cross-platform reproducibility
 
-Floating-point reproducibility across x86 / aarch64 / glibc / musl / Apple libm is not free. Mitigations to bake into the test harness when it is built:
+Floating-point reproducibility across x86 / aarch64 / glibc / musl / Apple libm is not free. Mitigations to bake into the test harness as Phase 1 kernels land (none are in place yet):
 
 - Force `-ffp-contract=off` in test config (or pin a no-FMA reference path) so FMA contraction doesn't change results across ISAs.
 - Offer a "deterministic" feature flag that forces sequential reduction in tests, so SIMD/parallel reduction order doesn't change FFT/dot-product results across CPUs.
@@ -76,7 +76,7 @@ Tests that *look* statistical but run in PR CI should use a fixed seed and act a
 
 ## Oracle stack by module category (planned)
 
-The library's content is intended to be organised into six categories. Each has a primary numerical oracle (and a secondary cross-check where one is genuinely independent). None of these oracles are wired up yet:
+The library's content is intended to be organised into six categories. Each has a primary numerical oracle (and a secondary cross-check where one is genuinely independent). The scipy-runner and `.npy`-loader entry points in `honeyeater-test` are Phase 0 stubs (`unimplemented!` until the first kernel needs them); each oracle gets wired up when its first kernel lands:
 
 ### Cat 0 — Numerical kernels (prerequisite layer)
 Matrix decompositions, polynomial roots, special functions, sequence generators (Gold, Kasami, m-sequences, Zadoff-Chu, Barker, PN).
@@ -131,16 +131,16 @@ PRNGs, AWGN, Rayleigh/Rician/Nakagami fading, 3GPP TDL, statistical properties o
 
 ### Phase 0 — Scaffolding
 
-Before any kernel is implemented:
+Items 1–7 are **complete**; item 8 (crates.io name reservation) is outstanding. The list is kept for the record of what Phase 0 committed to:
 
 1. Cargo workspace skeleton: workspace `Cargo.toml` at root, `honeyeater` (facade), `honeyeater-core` (sample types, trait definitions, signal containers), `honeyeater-test` (cross-validation helpers).
 2. The `Sample` trait plus the fixed-point sample type set in `honeyeater-core`: `Complex<i16>` and `Complex<i8>` as kernel sample types (`Sample`-implementing); `Complex<u8>` as a transport-only type at the SDR boundary, debiased to one of the others before any kernel touches it (the three integer formats produced by SDR hardware across the field — see `docs/architecture-planning.md` for the landscape and decisions 5–6 for the rationale). The trait is satisfied by `f32`, `f64`, `i16`, `i8` (and their `Complex<…>` wrappings). Without this wiring, generic kernels can't be written and fixed-point can't ship at 0.0.1. Goes in before any kernel.
-3. Wire up the `rustfft` dependency in `honeyeater-core` (used by Phase 1 step 4, the FFT wrapper). `num-complex` re-exported through `honeyeater-core` so user code has a stable import path independent of rustfft's version pinning.
+3. Wire up the FFT backend dependency in `honeyeater-core` — `phastft` as the default, behind the backend trait (`docs/architecture-planning.md` decision 11), used by Phase 1 step 4. `num-complex` re-exported through `honeyeater-core` so user code has a stable import path for the sample type.
 4. `honeyeater-test`: the seven assertion macros, a `.npy` loader for committed reference vectors, a scipy-subprocess helper for live cross-validation. **This is the highest-leverage piece of infrastructure in the project.**
 5. The `tools/oracle-gen/` workspace, outside the published crate set, for generating reference vectors from libfec / AFF3CT / etc. without those libraries entering the library's link graph.
 6. CI: a single `ci.yml` with `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo doc` with `RUSTDOCFLAGS=-Dwarnings`, plus `cargo deny check`. Stable + MSRV + nightly.
 7. Repo hygiene files: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (a short house-written conduct statement — originally "copy Rust's", revised: the Rust CoC and the Contributor Covenant both promise a staffed moderation and report-handling process that a company-maintained project of this size does not offer; the policy promises only what the maintainers actually do, which is discretionary curation with GitHub's standard tools), `SECURITY.md`, `rustfmt.toml`, `clippy.toml`, `deny.toml`.
-8. Reserve `honeyeater`, `honeyeater-core`, `honeyeater-test` on crates.io as `0.0.1-alpha.0`.
+8. Reserve `honeyeater`, `honeyeater-core`, `honeyeater-test` on crates.io as `0.0.0`. (Originally planned as `0.0.1-alpha.0`; revised — an "alpha" label implies testable software soliciting feedback, and `0.0.0` states plainly that nothing has been released.)
 
 ### Phase 1 — Tier-1 RF/electrical primitives, in order
 

@@ -6,13 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.0.0] - 2026-07-17
+
 ### Added
 
+- Version discipline in CI: the root `Cargo.toml` `[workspace.package]`
+  version is the single source of truth; CI checks that `CHANGELOG.md`'s
+  newest release heading matches it, and that every functional PR into
+  `main` increments it (docs-only diffs are detected automatically;
+  other non-functional changes use the `non-functional` PR label).
 - Initial repository skeleton.
 - Phase 0 scaffolding (per `docs/roadmap.md`):
-  - Cargo workspace with three member crates: `honeyeater` (facade),
+  - Cargo workspace with four member crates: `honeyeater` (facade),
     `honeyeater-core` (sample types, traits), `honeyeater-test`
-    (dev-only test harness).
+    (tolerance assertion macros and oracle helpers), and `honeyeater-cuda`
+    (a placeholder reserving the name for the deferred GPU backend).
   - `Sample` trait (`honeyeater-core`) with impls for `f32`, `f64`, `i16`,
     `i8`, and `Complex<…>` of each.
   - `num-complex` re-export through `honeyeater-core` for stable downstream
