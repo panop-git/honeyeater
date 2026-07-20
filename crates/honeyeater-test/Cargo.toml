@@ -15,7 +15,11 @@ publish = false
 
 [dependencies]
 honeyeater-core = { path = "../honeyeater-core", version = "0.0.0" }
+npyz = "0.9.1"
 num-complex = { workspace = true }
+
+[dev-dependencies]
+
 
 [lints]
 workspace = true
