@@ -1,8 +1,13 @@
 # honeyeater
 
+[![crates.io](https://img.shields.io/crates/v/honeyeater.svg)](https://crates.io/crates/honeyeater)
+[![docs.rs](https://img.shields.io/docsrs/honeyeater)](https://docs.rs/honeyeater)
+
 A Rust library of digital signal processing primitives for radio-frequency and electrical signals. Filters, transforms, modulation, forward error correction, channel models. Targets CPU-side processing of sample streams from radios, digitisers, and simulators.
 
 Pre-v0.0.1. Stewarded by [Panop](https://www.panop.ai), the spectrum security company.
+
+The crate is published on crates.io as [`honeyeater`](https://crates.io/crates/honeyeater); at this pre-release stage it is a name reservation with no kernels implemented yet.
 
 ## Documentation
 

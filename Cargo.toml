@@ -14,6 +14,7 @@ rust-version = "1.91"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/panop-git/honeyeater"
 homepage = "https://honeyeater.dev"
+documentation = "https://docs.rs/honeyeater"
 authors = ["The honeyeater contributors"]
 keywords = ["dsp", "sdr", "radio", "signal-processing", "fft"]
 categories = ["science", "mathematics"]

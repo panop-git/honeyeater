@@ -147,6 +147,28 @@ jobs:
             echo "docs-only diff; version bump not required"
             exit 0
           fi
+          # Metadata-only Cargo.toml edits don't change the compiled crate, so
+          # they don't need a bump. If the only functional file is Cargo.toml
+          # and every added/removed line touches a cosmetic metadata field
+          # (never dependencies, features, lints, version, edition, or
+          # rust-version), treat the diff as non-functional. The allowlist is
+          # deliberately narrow: anything unrecognised keeps the bump rule.
+          if [ "$functional" = "Cargo.toml" ]; then
+            changed=$(git diff "$BASE_SHA" "$HEAD_SHA" -- Cargo.toml \
+              | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)')
+            cosmetic='^[+-] *(description|documentation|homepage|repository|readme|keywords|categories|authors) *='
+            # Count changed lines that are NOT a cosmetic metadata field. Zero
+            # means every change was cosmetic, so no bump is needed. Any other
+            # count (a dependency, feature, version, edition, lint, or an
+            # unrecognised field) keeps the bump rule in force.
+            # `grep -c` exits 1 when the count is zero; `|| true` stops that
+            # from aborting the step under `bash -e`.
+            noncosmetic=$(echo "$changed" | grep -cvE "$cosmetic" || true)
+            if [ -n "$changed" ] && [ "$noncosmetic" -eq 0 ]; then
+              echo "metadata-only Cargo.toml change; version bump not required"
+              exit 0
+            fi
+          fi
           base=$(git show "$BASE_SHA:Cargo.toml" | grep -m1 '^version = ' | cut -d'"' -f2)
           head=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
           # Bootstrap release: the first release establishes 0.0.0 and has no
