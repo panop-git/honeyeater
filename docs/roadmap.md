@@ -2,7 +2,7 @@
 
 ## Status
 
-Pre-v0.0.1. Phase 0 (workspace scaffolding, CI, test harness) is complete except crates.io name reservation (Phase 0 item 8); Phase 1 kernels have not started.
+Pre-v0.0.1. Phase 0 (workspace scaffolding, CI, test harness, crates.io name reservation) is complete; Phase 1 kernels have not started.
 
 ## The plan in one sentence
 
@@ -131,7 +131,7 @@ PRNGs, AWGN, Rayleigh/Rician/Nakagami fading, 3GPP TDL, statistical properties o
 
 ### Phase 0 — Scaffolding
 
-Items 1–7 are **complete**; item 8 (crates.io name reservation) is outstanding. The list is kept for the record of what Phase 0 committed to:
+All items are **complete**. The list is kept for the record of what Phase 0 committed to:
 
 1. Cargo workspace skeleton: workspace `Cargo.toml` at root, `honeyeater` (facade), `honeyeater-core` (sample types, trait definitions, signal containers), `honeyeater-test` (cross-validation helpers).
 2. The `Sample` trait plus the fixed-point sample type set in `honeyeater-core`: `Complex<i16>` and `Complex<i8>` as kernel sample types (`Sample`-implementing); `Complex<u8>` as a transport-only type at the SDR boundary, debiased to one of the others before any kernel touches it (the three integer formats produced by SDR hardware across the field — see `docs/architecture-planning.md` for the landscape and decisions 5–6 for the rationale). The trait is satisfied by `f32`, `f64`, `i16`, `i8` (and their `Complex<…>` wrappings). Without this wiring, generic kernels can't be written and fixed-point can't ship at 0.0.1. Goes in before any kernel.
@@ -140,7 +140,7 @@ Items 1–7 are **complete**; item 8 (crates.io name reservation) is outstanding
 5. The `tools/oracle-gen/` workspace, outside the published crate set, for generating reference vectors from libfec / AFF3CT / etc. without those libraries entering the library's link graph.
 6. CI: a single `ci.yml` with `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo doc` with `RUSTDOCFLAGS=-Dwarnings`, plus `cargo deny check`. Stable + MSRV + nightly.
 7. Repo hygiene files: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (a short house-written conduct statement — originally "copy Rust's", revised: the Rust CoC and the Contributor Covenant both promise a staffed moderation and report-handling process that a company-maintained project of this size does not offer; the policy promises only what the maintainers actually do, which is discretionary curation with GitHub's standard tools), `SECURITY.md`, `rustfmt.toml`, `clippy.toml`, `deny.toml`.
-8. Reserve `honeyeater`, `honeyeater-core`, `honeyeater-test` on crates.io as `0.0.0`. (Originally planned as `0.0.1-alpha.0`; revised — an "alpha" label implies testable software soliciting feedback, and `0.0.0` states plainly that nothing has been released.)
+8. Reserve `honeyeater`, `honeyeater-core`, `honeyeater-test`, and `honeyeater-cuda` on crates.io as `0.0.0`. **Done** — all four published at `0.0.0` on 2026-07-21. (Originally planned as `0.0.1-alpha.0`; revised — an "alpha" label implies testable software soliciting feedback, and `0.0.0` states plainly that nothing has been released.)
 
 ### Phase 1 — Tier-1 RF/electrical primitives, in order
 
