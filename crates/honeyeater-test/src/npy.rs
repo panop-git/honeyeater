@@ -48,11 +48,15 @@ pub fn load_f32(_path: &Path) -> Vec<f32> {
 ///
 /// Stub: always panics.
 #[must_use]
-pub fn load_f64(_path: &Path) -> Vec<f64> {
-    unimplemented!(
-        "honeyeater_test::npy::load_f64 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+pub fn load_f64(path: &Path) -> Vec<f64> {
+    let bytes = std::fs::read(path).expect("Failed to read .npy file");
+
+    let npy_reader = npyz::NpyFile::new(&bytes[..]).expect("Failed to parse .npy file");
+    npy_reader
+        .data::<f64>()
+        .expect("Failed to read .npy data")
+        .map(|value| value.expect("Failed to parse individual floating point values"))
+        .collect()
 }
 
 /// Load a `.npy` file containing a 1-D array of `Complex<f32>` values.
