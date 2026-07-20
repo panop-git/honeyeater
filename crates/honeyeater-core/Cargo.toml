@@ -16,5 +16,8 @@ readme = "README.md"
 num-complex = { workspace = true }
 phastft = "0.4.0"
 
+[dev-dependencies]
+honeyeater-test = { path = "../honeyeater-test" }
+
 [lints]
 workspace = true
