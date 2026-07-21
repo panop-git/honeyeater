@@ -55,6 +55,8 @@ mod tests {
         let mut vector_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         vector_path.push("tests");
         vector_path.push("vectors");
+        vector_path.push("windows");
+        vector_path.push("hann");
         vector_path.push("hann_64.npy");
 
         let expected = npy::load_f64(&vector_path);
@@ -77,6 +79,8 @@ mod tests {
         let mut vector_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         vector_path.push("tests");
         vector_path.push("vectors");
+        vector_path.push("windows");
+        vector_path.push("hann");
         vector_path.push("hann_periodic_64.npy");
 
         let expected = npy::load_f64(&vector_path);
