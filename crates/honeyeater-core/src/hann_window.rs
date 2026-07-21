@@ -1,14 +1,24 @@
-// Check for symmetric hanning window
+/// Computes the symmetric Hann window value at sample index `n` for a window of length `l`.
+/// This variant is designed for non-periodic signals only. The symmetric value is set to true.
 pub fn hann_window(n: usize, l: usize) -> f64 {
     hann(n, l, true)
 }
 
-// Check for non-periodic hanning window
+/// Computes the symmetric Hann window value at sample index `n` for a window of length `l`.
+/// This variant is designed for periodic signals only. The symmetric value is set to false.
 pub fn hann_window_periodic(n: usize, l: usize) -> f64 {
     hann(n, l, false)
 }
 
-pub fn hann(n: usize, l: usize, symmetric: bool) -> f64 {
+/// Internal crate function for calculating Hann window values.
+///
+/// This function implements the discrete-time Hann window formula:
+/// omega(n) = 0.5 - 0.5 * cos((2 * pi * n)/D), where D depends on the symmetry flag.
+/// For symmetry = 'true', D = l - 1;
+/// For symmetry = 'false', D = l.
+///
+/// Integrated panic and assert macros to ensure input parameters are within valid bounds
+pub(crate) fn hann(n: usize, l: usize, symmetric: bool) -> f64 {
     // Ensures that the sample index n is less than the window length l
     assert!(
         n < l,
@@ -60,6 +70,7 @@ mod tests {
     }
 
     // Test f64 periodic Hann window against .npy reference vector
+    #[test]
     fn test_hann_window_periodic_matches_oracle() {
         let l = 64;
 
