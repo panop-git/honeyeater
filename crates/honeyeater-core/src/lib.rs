@@ -19,9 +19,9 @@ pub use num_complex;
 pub use num_complex::Complex;
 
 mod sample;
-mod hann_window;
+mod windows;
 
 pub use sample::Sample;
 
 //Brings hann_window functions into current scope
-pub use hann_window::{hann_window, hann_window_periodic};
+pub use windows::{hann_window, hann_window_periodic};
