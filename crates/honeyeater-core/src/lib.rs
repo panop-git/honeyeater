@@ -23,5 +23,6 @@ mod windows;
 
 pub use sample::Sample;
 
-//Brings hann_window functions into current scope
-pub use windows::{hann_window, hann_window_periodic};
+// Brings hann and hamming functions into current scope from their new sub-modules
+pub use windows::hamming::{hamming_window, hamming_window_periodic};
+pub use windows::hann::{hann_window, hann_window_periodic};
