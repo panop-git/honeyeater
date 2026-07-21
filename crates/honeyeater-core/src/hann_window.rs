@@ -9,7 +9,7 @@ pub fn hann_window_periodic(n: usize, l: usize) -> f64 {
 }
 
 pub fn hann(n: usize, l: usize, symmetric: bool) -> f64 {
-    debug_assert!(
+    assert!(
         n < l,
         "sample index n ({n}) must be less than window length l ({l})"
     );
