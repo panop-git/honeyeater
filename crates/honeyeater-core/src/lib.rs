@@ -18,13 +18,17 @@
 pub use num_complex;
 pub use num_complex::Complex;
 
+mod biquad;
 mod sample;
 mod windows;
 
 pub use sample::Sample;
 
-// Brings hann and hamming functions into current scope from their new sub-modules
+// Brings window functions into current scope from their new sub-modules
 pub use windows::blackmanharris::{blackmanharris_window, blackmanharris_window_periodic};
 pub use windows::hamming::{hamming_window, hamming_window_periodic};
 pub use windows::hann::{hann_window, hann_window_periodic};
 pub use windows::kaiser::{kaiser_window, kaiser_window_periodic};
+
+// Brings Biquad filter functions into current scope from their new sub-modules
+pub use biquad::Biquad;
