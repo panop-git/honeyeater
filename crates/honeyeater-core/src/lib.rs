@@ -15,10 +15,12 @@
 
 #![forbid(unsafe_code)]
 
+pub use fft::FftWrapper;
 pub use num_complex;
 pub use num_complex::Complex;
 
 mod biquad;
+mod fft;
 mod sample;
 mod windows;
 

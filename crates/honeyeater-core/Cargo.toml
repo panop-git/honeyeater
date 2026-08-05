@@ -15,6 +15,7 @@ readme = "README.md"
 [dependencies]
 num-complex = { workspace = true }
 phastft = "0.4.0"
+rustfft = "6.4.1"
 
 [dev-dependencies]
 honeyeater-test = { path = "../honeyeater-test" }
