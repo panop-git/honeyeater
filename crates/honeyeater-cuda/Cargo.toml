@@ -1,0 +1,30 @@
+[package]
+name = "honeyeater-cuda"
+description = "CUDA GPU backend for the honeyeater DSP library. Placeholder reserving the name; no implementation yet."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "README.md"
+
+# This crate deliberately does NOT inherit the workspace lints, because the
+# workspace forbids `unsafe_code` and a CUDA FFI backend cannot honour that:
+# calling into the CUDA driver requires `unsafe extern` blocks this crate
+# writes itself. The other workspace lints are restated here; `unsafe_code`
+# is omitted so it defaults to allowed for this crate alone.
+[lints.rust]
+missing_docs = "warn"
+unreachable_pub = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+multiple_crate_versions = "allow"

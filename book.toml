@@ -21,6 +21,7 @@ git-repository-url = "https://github.com/panop-git/honeyeater"
 edit-url-template = "https://github.com/panop-git/honeyeater/edit/main/{path}"
 site-url = "/"
 additional-css = ["assets/css/custom.css"]
+additional-js = ["assets/js/version.js"]
 sidebar-header-nav = true
 mathjax-support = true
 

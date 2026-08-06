@@ -1,5 +1,7 @@
-//! Cross-validation helpers and tolerance assertion macros for honeyeater's
-//! own test suite. Not published; not intended as a general testing library.
+//! Cross-validation helpers and tolerance assertion macros for testing DSP
+//! code against named oracles. honeyeater uses them for its own kernels; they
+//! are published so downstream crates can hold their implementations to the
+//! same tolerance vocabulary. Pre-0.0.1: the API may change between releases.
 //!
 //! ## The seven assertion macros
 //!

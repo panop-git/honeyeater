@@ -6,7 +6,9 @@ This file is the source of truth for contributor-facing rules. CONTRIBUTING.md i
 
 ## `unsafe` code
 
-honeyeater contains **no `unsafe` code**, mechanically enforced by `#![forbid(unsafe_code)]` at the root of every crate in the workspace.
+honeyeater's DSP crates contain **no `unsafe` code**, mechanically enforced by `unsafe_code = "forbid"` in the workspace lints, which every DSP crate inherits.
+
+The sole exception is `honeyeater-cuda` (a placeholder for the deferred GPU backend, `docs/vision.md` "Long-term"): a CUDA FFI backend must write `unsafe extern` blocks to call the driver, so that crate opts out of the workspace lints and permits `unsafe`. The exception is confined to the GPU crate, which no other crate depends on; the core DSP link graph stays `unsafe`-free.
 
 `forbid` is the strongest possible level: the compiler will refuse to build any crate in this workspace that contains an `unsafe` block. The attribute cannot be overridden by an inner `#[allow]`; bypassing it requires editing the crate root itself, which makes any future relaxation of the policy a deliberate, public, code-review-visible change.
 
