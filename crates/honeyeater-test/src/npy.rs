@@ -6,90 +6,122 @@
 //!
 //! # Phase 0 status
 //!
-//! Stub. The loader signatures below define the shape of the API but the
-//! implementations are deferred to the first kernel that needs a `.npy`
-//! reference vector. The roadmap (`docs/roadmap.md`, "Phase 1 — Tier-1
-//! RF/electrical primitives") expects this to happen at the Hann window
-//! step.
-//!
-//! When implemented, the loader should:
-//!
-//! - Parse the `.npy` v1.0/v2.0/v3.0 header (a small dict literal in ASCII).
-//! - Verify the `dtype` and `shape` match what the caller expects.
-//! - Return a borrowed slice or owned `Vec`, picking the form that avoids
-//!   re-allocation on the hot path.
-//! - Refuse `.npy` files saved with `allow_pickle = True` (security
-//!   defence-in-depth, though numpy stopped defaulting that to True years
-//!   ago).
-//!
-//! A pure-Rust implementation is preferable to a binding. The format is
-//! small enough that hand-rolling is easy and avoids a dependency.
+//! Implemented. Reference vectors are loaded using `npyz`, with validation
+//! that arrays are one-dimensional and do not contain pickled/object data.
 
+use std::error::Error;
+use std::fs::File;
+use std::io::{BufReader, Error as IoError, ErrorKind};
 use std::path::Path;
 
 use num_complex::Complex;
 
+pub type NpyResult<T> = Result<T, Box<dyn Error>>;
+
+/// Generic 1-Dimensional Loader
+fn load_1d<T>(path: &Path) -> NpyResult<Vec<T>>
+where
+    T: npyz::Deserialize,
+{
+    // Open the file without reading the whole thing into memory first.
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    // Parse the .npy header.
+    let npy = npyz::NpyFile::new(reader)?;
+
+    // Honeyeater's loader contract is specifically for 1-D reference vectors.
+    if npy.shape().len() != 1 {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            format!("expected a 1-D .npy array, found shape {:?}", npy.shape()),
+        )
+        .into());
+    }
+
+    // Never allow Python pickle/object arrays.
+    if npy.uses_pickled_array() {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            "pickled/object .npy arrays are not supported",
+        )
+        .into());
+    }
+
+    // npyz checks that the numpy dtype is compatible with T.
+    let data: Vec<T> = npy.into_vec()?;
+
+    Ok(data)
+}
 /// Load a `.npy` file containing a 1-D array of `f32` values.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Stub: always panics.
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `f32`.
 #[must_use]
-pub fn load_f32(_path: &Path) -> Vec<f32> {
-    unimplemented!(
-        "honeyeater_test::npy::load_f32 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+pub fn load_f32(path: &Path) -> NpyResult<Vec<f32>> {
+    load_1d(path)
 }
 
 /// Load a `.npy` file containing a 1-D array of `f64` values.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Stub: always panics.
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `f64`.
 #[must_use]
-pub fn load_f64(path: &Path) -> Vec<f64> {
-    let bytes = std::fs::read(path).expect("Failed to read .npy file");
-
-    let npy_reader = npyz::NpyFile::new(&bytes[..]).expect("Failed to parse .npy file");
-    npy_reader
-        .data::<f64>()
-        .expect("Failed to read .npy data")
-        .map(|value| value.expect("Failed to parse individual floating point values"))
-        .collect()
+pub fn load_f64(path: &Path) -> NpyResult<Vec<f64>> {
+    load_1d(path)
 }
 
 /// Load a `.npy` file containing a 1-D array of `Complex<f32>` values.
 ///
-/// numpy stores complex arrays as interleaved real/imaginary pairs, which
-/// is the same memory layout as a slice of [`num_complex::Complex<f32>`].
-/// The loader returns the data in honeyeater's preferred type to avoid a
-/// caller-side cast on every test.
+/// # Errors
 ///
-/// # Panics
-///
-/// Stub: always panics.
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `Complex<f32>`.
 #[must_use]
-pub fn load_complex_f32(_path: &Path) -> Vec<Complex<f32>> {
-    unimplemented!(
-        "honeyeater_test::npy::load_complex_f32 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+pub fn load_complex_f32(path: &Path) -> NpyResult<Vec<Complex<f32>>> {
+    load_1d(path)
 }
 
 /// Load a `.npy` file containing a 1-D array of `Complex<f64>` values.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Stub: always panics.
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `Complex<f64>`.
 #[must_use]
-pub fn load_complex_f64(path: &Path) -> Vec<Complex<f64>> {
-    let bytes = std::fs::read(path).expect("Failed to read .npy file");
+pub fn load_complex_f64(path: &Path) -> NpyResult<Vec<Complex<f64>>> {
+    load_1d(path)
+}
 
-    let npy_reader = npyz::NpyFile::new(&bytes[..]).expect("Failed to parse .npy file");
-    npy_reader
-        .data::<Complex<f64>>()
-        .expect("Failed to read .npy data")
-        .map(|value| value.expect("Failed to parse individual floating point values"))
-        .collect()
+/// Load a `.npy` file containing a 1-D array of `Complex<i32>` values.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `Complex<i32>`.
+#[must_use]
+pub fn load_complex_i32(path: &Path) -> NpyResult<Vec<Complex<i32>>> {
+    let flat_data: Vec<i32> = load_1d(path)?;
+
+    if flat_data.len() % 2 != 0 {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            "complex i32 vector must contain an even number of interleaved values",
+        )
+        .into());
+    }
+
+    Ok(flat_data
+        .chunks_exact(2)
+        .map(|chunk| Complex::new(chunk[0], chunk[1]))
+        .collect())
 }

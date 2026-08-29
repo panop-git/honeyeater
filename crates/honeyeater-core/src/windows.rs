@@ -1,15 +1,33 @@
+pub trait WindowValue: Copy + Default {
+    fn from_f64(value: f64) -> Self;
+}
+
+impl WindowValue for f32 {
+    fn from_f64(value: f64) -> Self {
+        value as f32
+    }
+}
+
+impl WindowValue for f64 {
+    fn from_f64(value: f64) -> Self {
+        value
+    }
+}
+
 // Hann window module
-pub mod hann {
+pub(crate) mod hann {
+    use super::WindowValue;
+
     /// Computes the symmetric Hann window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
-    pub fn hann_window(n: usize, l: usize) -> f64 {
-        hann(n, l, true)
+    pub fn hann_window<T: WindowValue>(n: usize, l: usize) -> T {
+        hann::<T>(n, l, true)
     }
 
     /// Computes the periodic Hann window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
-    pub fn hann_window_periodic(n: usize, l: usize) -> f64 {
-        hann(n, l, false)
+    pub fn hann_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
+        hann::<T>(n, l, false)
     }
 
     /// Internal crate function for calculating Hann window values.
@@ -20,7 +38,7 @@ pub mod hann {
     /// For symmetry = 'false', D = l.
     ///
     /// Integrated panic and assert macros to ensure input parameters are within valid bounds
-    pub(crate) fn hann(n: usize, l: usize, symmetric: bool) -> f64 {
+    pub(crate) fn hann<T: WindowValue>(n: usize, l: usize, symmetric: bool) -> T {
         // Ensures that the sample index n is less than the window length l
         assert!(
             n < l,
@@ -30,30 +48,32 @@ pub mod hann {
         // Condition checks
         match l {
             0 => panic!("Hann window length must be greater than zero"),
-            1 => 1.0,
+            1 => T::from_f64(1.0),
 
             // For lengths 2 or greater
             _ => {
                 let denom = if symmetric { l - 1 } else { l }; // Changes condition for periodic vs symmetric
                 let angle = 2.0 * std::f64::consts::PI * n as f64 / denom as f64; // Uses discrete-time formula for Hann window
-                0.5 - 0.5 * angle.cos()
+                T::from_f64(0.5 - 0.5 * angle.cos())
             }
         }
     }
 }
 
 // Hamming window module
-pub mod hamming {
+pub(crate) mod hamming {
+    use super::WindowValue;
+
     /// Computes the symmetric Hamming window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
-    pub fn hamming_window(n: usize, l: usize) -> f64 {
-        hamming(n, l, true)
+    pub fn hamming_window<T: WindowValue>(n: usize, l: usize) -> T {
+        hamming::<T>(n, l, true)
     }
 
     /// Computes the periodic Hamming window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
-    pub fn hamming_window_periodic(n: usize, l: usize) -> f64 {
-        hamming(n, l, false)
+    pub fn hamming_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
+        hamming::<T>(n, l, false)
     }
 
     /// Internal crate function for calculating Hamming window values.
@@ -64,7 +84,7 @@ pub mod hamming {
     /// For symmetry = 'false', D = l.
     ///
     /// Integrated panic and assert macros to ensure input parameters are within valid bounds
-    pub(crate) fn hamming(n: usize, l: usize, symmetric: bool) -> f64 {
+    pub(crate) fn hamming<T: WindowValue>(n: usize, l: usize, symmetric: bool) -> T {
         // Ensures that the sample index n is less than the window length l
         assert!(
             n < l,
@@ -74,29 +94,31 @@ pub mod hamming {
         // Condition checks
         match l {
             0 => panic!("Hamming window length must be greater than zero"),
-            1 => 1.0,
+            1 => T::from_f64(1.0),
 
             // For lengths 2 or greater
             _ => {
                 let denom = if symmetric { l - 1 } else { l }; // Changes condition for periodic vs symmetric
                 let angle = 2.0 * std::f64::consts::PI * n as f64 / denom as f64; // Uses discrete-time formula for Hamming window
-                0.54 - 0.46 * angle.cos()
+                T::from_f64(0.54 - 0.46 * angle.cos())
             }
         }
     }
 }
 
-pub mod blackmanharris {
+pub(crate) mod blackmanharris {
+    use super::WindowValue;
+
     /// Computes the symmetric Blackman-Harris window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
-    pub fn blackmanharris_window(n: usize, l: usize) -> f64 {
-        blackmanharris(n, l, true)
+    pub fn blackmanharris_window<T: WindowValue>(n: usize, l: usize) -> T {
+        blackmanharris::<T>(n, l, true)
     }
 
     /// Computes the periodic Blackman-Harris window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
-    pub fn blackmanharris_window_periodic(n: usize, l: usize) -> f64 {
-        blackmanharris(n, l, false)
+    pub fn blackmanharris_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
+        blackmanharris::<T>(n, l, false)
     }
 
     /// Internal crate function for calculating Blackman-Harris window values.
@@ -107,7 +129,7 @@ pub mod blackmanharris {
     /// For symmetry = 'false', D = l.
     ///
     /// Integrated panic and assert macros to ensure input parameters are within valid bounds
-    pub(crate) fn blackmanharris(n: usize, l: usize, symmetric: bool) -> f64 {
+    pub(crate) fn blackmanharris<T: WindowValue>(n: usize, l: usize, symmetric: bool) -> T {
         // Ensures that the sample index n is less than the window length l
         assert!(
             n < l,
@@ -117,30 +139,34 @@ pub mod blackmanharris {
         // Condition checks
         match l {
             0 => panic!("Blackman-Harris window length must be greater than zero"),
-            1 => 1.0,
+            1 => T::from_f64(1.0),
 
             // For lengths 2 or greater
             _ => {
                 let denom = if symmetric { l - 1 } else { l }; // Changes condition for periodic vs symmetric
                 let angle = 2.0 * std::f64::consts::PI * n as f64 / denom as f64; // Uses discrete-time formula for Blackman-Harris window
-                0.35875 - 0.48829 * angle.cos() + 0.14128 * (2.0 * angle).cos()
-                    - 0.01168 * (3.0 * angle).cos()
+                T::from_f64(
+                    0.35875 - 0.48829 * angle.cos() + 0.14128 * (2.0 * angle).cos()
+                        - 0.01168 * (3.0 * angle).cos(),
+                )
             }
         }
     }
 }
 
-pub mod kaiser {
+pub(crate) mod kaiser {
+    use super::WindowValue;
+
     /// Computes the symmetric Kaiser window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
-    pub fn kaiser_window(n: usize, l: usize, beta: f64) -> f64 {
-        kaiser(n, l, beta, true)
+    pub fn kaiser_window<T: WindowValue>(n: usize, l: usize, beta: f64) -> T {
+        kaiser::<T>(n, l, beta, true)
     }
 
     /// Computes the periodic Kaiser window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
-    pub fn kaiser_window_periodic(n: usize, l: usize, beta: f64) -> f64 {
-        kaiser(n, l, beta, false)
+    pub fn kaiser_window_periodic<T: WindowValue>(n: usize, l: usize, beta: f64) -> T {
+        kaiser::<T>(n, l, beta, false)
     }
 
     /// Zero-order modified Bessel function of the first kind can be defined by the following:
@@ -164,7 +190,7 @@ pub mod kaiser {
     /// For symmetry = 'false', D = l.
     ///
     /// Integrated panic and assert macros to ensure input parameters are within valid bounds
-    pub(crate) fn kaiser(n: usize, l: usize, beta: f64, symmetric: bool) -> f64 {
+    pub(crate) fn kaiser<T: WindowValue>(n: usize, l: usize, beta: f64, symmetric: bool) -> T {
         // Ensures that the sample index n is less than the window length l
         assert!(
             n < l,
@@ -174,7 +200,7 @@ pub mod kaiser {
         // Condition checks
         match l {
             0 => panic!("Kaiser window length must be greater than zero"),
-            1 => 1.0,
+            1 => T::from_f64(1.0),
 
             _ => {
                 let denom = if symmetric { l - 1 } else { l };
@@ -186,7 +212,7 @@ pub mod kaiser {
                 };
                 let numerator = bessel_i0(beta * sqrt_term);
                 let denominator = bessel_i0(beta);
-                numerator / denominator
+                T::from_f64(numerator / denominator)
             }
         }
     }
@@ -213,10 +239,11 @@ mod tests {
             vector_path.push("hann");
             vector_path.push("hann_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends hann_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(hann_window(n, l));
             }
@@ -237,9 +264,10 @@ mod tests {
             vector_path.push("hann");
             vector_path.push("hann_periodic_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
-            let mut actual = Vec::with_capacity(l);
+            let mut actual: Vec<f64> = Vec::with_capacity(l);
             for n in 0..l {
                 actual.push(hann_window_periodic(n, l));
             }
@@ -266,10 +294,11 @@ mod tests {
             vector_path.push("hamming");
             vector_path.push("hamming_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends hamming_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(hamming_window(n, l));
             }
@@ -291,10 +320,11 @@ mod tests {
             vector_path.push("hamming");
             vector_path.push("hamming_periodic_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends hamming_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(hamming_window_periodic(n, l));
             }
@@ -322,10 +352,11 @@ mod tests {
             vector_path.push("blackmanharris");
             vector_path.push("blackmanharris_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends blackmanharris_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(blackmanharris_window(n, l));
             }
@@ -347,10 +378,11 @@ mod tests {
             vector_path.push("blackmanharris");
             vector_path.push("blackmanharris_periodic_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends blackmanharris_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(blackmanharris_window_periodic(n, l));
             }
@@ -379,10 +411,11 @@ mod tests {
             vector_path.push("kaiser");
             vector_path.push("kaiser_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends kaiser_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(kaiser_window(n, l, beta));
             }
@@ -405,10 +438,11 @@ mod tests {
             vector_path.push("kaiser");
             vector_path.push("kaiser_periodic_64.npy");
 
-            let expected = npy::load_f64(&vector_path);
+            let expected =
+                npy::load_f64(&vector_path).expect("failed to load window reference vector");
 
             // Appends kaiser_window function outputs to vector
-            let mut actual = Vec::with_capacity(l); // Creates empty vector with length l
+            let mut actual: Vec<f64> = Vec::with_capacity(l); // Creates empty vector with length l
             for n in 0..l {
                 actual.push(kaiser_window_periodic(n, l, beta));
             }

@@ -1,11 +1,36 @@
-pub struct Biquad {
-    a: [f64; 3],
-    b: [f64; 3],
-    x: [f64; 2],
-    y: [f64; 2],
+use std::ops::{Add, Mul, Neg, Sub};
+
+pub trait BiquadScalar:
+    Copy + Default + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Neg<Output = Self>
+{
+    fn from_f64(value: f64) -> Self;
 }
 
-impl Biquad {
+impl BiquadScalar for f32 {
+    fn from_f64(value: f64) -> Self {
+        value as f32
+    }
+}
+
+impl BiquadScalar for f64 {
+    fn from_f64(value: f64) -> Self {
+        value
+    }
+}
+
+/// A second-order biquad filter state machine.
+///
+/// The filter is parameterised by its coefficients and the delay-line state
+/// carried between samples. The implementation is generic over floating-point
+/// sample types so the same filter core can be used for `f32` or `f64`.
+pub struct Biquad<T: BiquadScalar> {
+    a: [T; 3],
+    b: [T; 3],
+    x: [T; 2],
+    y: [T; 2],
+}
+
+impl<T: BiquadScalar> Biquad<T> {
     /// Establish coefficients for lowpass filter
     pub fn lowpass(sample_rate: f64, cutoff_freq: f64, q: f64) -> Self {
         let w0 = 2.0 * std::f64::consts::PI * cutoff_freq / sample_rate;
@@ -19,14 +44,19 @@ impl Biquad {
 
         // Pre-calculate coefficients divided by a0 for efficiency
         Self {
-            b: [b0 / a0, b1 / a0, b2 / a0],
-            a: [1.0, a1 / a0, a2 / a0],
-            x: [0.0, 0.0], // x[n-1], x[n-2]
-            y: [0.0, 0.0], // y[n-1], y[n-2]
+            b: [
+                T::from_f64(b0 / a0),
+                T::from_f64(b1 / a0),
+                T::from_f64(b2 / a0),
+            ],
+            a: [T::from_f64(1.0), T::from_f64(a1 / a0), T::from_f64(a2 / a0)],
+            x: [T::from_f64(0.0), T::from_f64(0.0)], // x[n-1], x[n-2]
+            y: [T::from_f64(0.0), T::from_f64(0.0)], // y[n-1], y[n-2]
         }
     }
 
-    pub fn biquad_filter(&mut self, input: f64) -> f64 {
+    /// Process one sample through the biquad filter.
+    pub fn biquad_filter(&mut self, input: T) -> T {
         let output = (self.b[0] * input) + (self.b[1] * self.x[0]) + (self.b[2] * self.x[1])
             - (self.a[1] * self.y[0])
             - (self.a[2] * self.y[1]);
@@ -60,10 +90,10 @@ mod biquad_tests {
         vector_path.push("lpf");
         vector_path.push("lpf_64.npy");
 
-        let expected = npy::load_f64(&vector_path);
+        let expected = npy::load_f64(&vector_path).expect("failed to load biquad reference vector");
         let l = expected.len();
 
-        let mut filter = Biquad::lowpass(sample_rate, cutoff_freq, q);
+        let mut filter = Biquad::<f64>::lowpass(sample_rate, cutoff_freq, q);
 
         let mut actual = Vec::with_capacity(l);
         for n in 0..l {

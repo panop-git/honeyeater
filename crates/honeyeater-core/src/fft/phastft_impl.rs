@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use super::FftWrapper;
 
 // Bridge trait to map generics to phastft's hardcoded function names
-pub trait PhastFftFloat {
+pub(crate) trait PhastFftFloat {
     fn execute(buffer: &mut [Complex<Self>], direction: Direction)
     where
         Self: Sized;
@@ -23,13 +23,13 @@ impl PhastFftFloat for f64 {
     }
 }
 
-pub struct PhastFftBackend<T> {
+pub(crate) struct PhastFftBackend<T> {
     size: usize,
     _marker: PhantomData<T>,
 }
 
 impl<T: PhastFftFloat> PhastFftBackend<T> {
-    pub fn new(size: usize) -> Self {
+    pub(crate) fn new(size: usize) -> Self {
         assert!(
             size.is_power_of_two(),
             "phastft only supports power-of-2 sizes"

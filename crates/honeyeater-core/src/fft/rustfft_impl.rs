@@ -4,14 +4,14 @@ use std::sync::Arc;
 
 use super::FftWrapper;
 
-pub struct RustFftBackend<T> {
+pub(crate) struct RustFftBackend<T> {
     forward: Arc<dyn Fft<T>>,
     inverse: Arc<dyn Fft<T>>,
     size: usize,
 }
 
 impl<T: FftNum> RustFftBackend<T> {
-    pub fn new(size: usize) -> Self {
+    pub(crate) fn new(size: usize) -> Self {
         let mut planner = FftPlanner::<T>::new();
         let forward = planner.plan_fft_forward(size);
         let inverse = planner.plan_fft_inverse(size);
