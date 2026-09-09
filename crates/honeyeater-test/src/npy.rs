@@ -6,8 +6,8 @@
 //!
 //! # Phase 0 status
 //!
-//! Implemented. Reference vectors are loaded using `npyz`, with validation
-//! that arrays are one-dimensional and do not contain pickled/object data.
+//! Implemented. Reference vectors are loaded using `npyz`, with shape
+//! validation appropriate to each vector type and rejection of pickled/object data.
 
 use std::error::Error;
 use std::fs::File;
@@ -101,27 +101,76 @@ pub fn load_complex_f64(path: &Path) -> NpyResult<Vec<Complex<f64>>> {
     load_1d(path)
 }
 
-/// Load a `.npy` file containing a 1-D array of `Complex<i32>` values.
-///
-/// # Errors
-///
-/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
-/// is not one-dimensional, contains pickled/object data, or has a dtype that
-/// cannot be deserialised as `Complex<i32>`.
-#[must_use]
-pub fn load_complex_i32(path: &Path) -> NpyResult<Vec<Complex<i32>>> {
-    let flat_data: Vec<i32> = load_1d(path)?;
+/// Load a `.npy` file containing integer complex samples stored as an `[N, 2]`
+/// array of real/imaginary pairs.
+fn load_complex_integer_pairs<T>(path: &Path) -> NpyResult<Vec<Complex<T>>>
+where
+    T: npyz::Deserialize + Copy,
+{
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
 
-    if flat_data.len() % 2 != 0 {
+    let npy = npyz::NpyFile::new(reader)?;
+
+    if npy.shape().len() != 2 || npy.shape()[1] != 2 {
         return Err(IoError::new(
             ErrorKind::InvalidData,
-            "complex i32 vector must contain an even number of interleaved values",
+            format!(
+                "expected an integer complex .npy array with shape [N, 2], found shape {:?}",
+                npy.shape()
+            ),
         )
-        .into());
+            .into());
     }
+
+    if npy.uses_pickled_array() {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            "pickled/object .npy arrays are not supported",
+        )
+            .into());
+    }
+
+    let flat_data: Vec<T> = npy.into_vec()?;
 
     Ok(flat_data
         .chunks_exact(2)
         .map(|chunk| Complex::new(chunk[0], chunk[1]))
         .collect())
+}
+
+/// Load complex `i8` samples stored as an `[N, 2]` `.npy` integer array.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// does not have shape `[N, 2]`, contains pickled/object data, or has an
+/// incompatible dtype.
+#[must_use]
+pub fn load_complex_i8(path: &Path) -> NpyResult<Vec<Complex<i8>>> {
+    load_complex_integer_pairs(path)
+}
+
+/// Load complex `i16` samples stored as an `[N, 2]` `.npy` integer array.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// does not have shape `[N, 2]`, contains pickled/object data, or has an
+/// incompatible dtype.
+#[must_use]
+pub fn load_complex_i16(path: &Path) -> NpyResult<Vec<Complex<i16>>> {
+    load_complex_integer_pairs(path)
+}
+
+/// Load complex `i32` samples stored as an `[N, 2]` `.npy` integer array.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// does not have shape `[N, 2]`, contains pickled/object data, or has an
+/// incompatible dtype.
+#[must_use]
+pub fn load_complex_i32(path: &Path) -> NpyResult<Vec<Complex<i32>>> {
+    load_complex_integer_pairs(path)
 }

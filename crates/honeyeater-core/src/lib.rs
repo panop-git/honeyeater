@@ -19,10 +19,12 @@ pub use num_complex;
 pub use num_complex::Complex;
 
 mod biquad;
+mod crc;
 mod fft;
 mod mixer;
 mod sample;
 mod windows;
+mod nco;
 
 pub use sample::Sample;
 
@@ -32,8 +34,30 @@ pub use windows::hamming::{hamming_window, hamming_window_periodic};
 pub use windows::hann::{hann_window, hann_window_periodic};
 pub use windows::kaiser::{kaiser_window, kaiser_window_periodic};
 
+// Brings CRC functions into current scope
+pub use crc::{crc16_arc, crc32_castagnoli};
+
 // Brings Biquad filter functions into current scope
 pub use biquad::Biquad;
 
 // Brings FFT function into current scope
 pub use fft::FftWrapper;
+
+// Brings complex multiply and mixer primitives into current scope
+pub use mixer::{
+    complex_multiply,
+    complex_multiply_conjugate,
+    complex_multiply_conjugate_i16,
+    complex_multiply_conjugate_i8,
+    complex_multiply_i16,
+    complex_multiply_i8,
+    mix_down,
+    mix_down_fixed_i16,
+    mix_down_fixed_i8,
+    mix_up,
+    mix_up_fixed_i16,
+    mix_up_fixed_i8,
+};
+
+// Brings NCO / DDS processor into current scope
+pub use nco::Nco;
