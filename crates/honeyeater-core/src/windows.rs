@@ -2,6 +2,7 @@ pub trait WindowValue: Copy + Default {
     fn from_f64(value: f64) -> Self;
 }
 
+#[allow(clippy::cast_possible_truncation)]
 impl WindowValue for f32 {
     fn from_f64(value: f64) -> Self {
         value as f32
@@ -14,18 +15,25 @@ impl WindowValue for f64 {
     }
 }
 
+fn usize_to_f64(value: usize) -> f64 {
+    let value = u32::try_from(value).expect("window index or length exceeds u32::MAX");
+    f64::from(value)
+}
+
 // Hann window module
 pub(crate) mod hann {
-    use super::WindowValue;
+    use super::{WindowValue, usize_to_f64};
 
     /// Computes the symmetric Hann window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    #[must_use]
     pub fn hann_window<T: WindowValue>(n: usize, l: usize) -> T {
         hann::<T>(n, l, true)
     }
 
     /// Computes the periodic Hann window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    #[must_use]
     pub fn hann_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
         hann::<T>(n, l, false)
     }
@@ -53,7 +61,7 @@ pub(crate) mod hann {
             // For lengths 2 or greater
             _ => {
                 let denom = if symmetric { l - 1 } else { l }; // Changes condition for periodic vs symmetric
-                let angle = 2.0 * std::f64::consts::PI * n as f64 / denom as f64; // Uses discrete-time formula for Hann window
+                let angle = 2.0 * std::f64::consts::PI * usize_to_f64(n) / usize_to_f64(denom); // Uses discrete-time formula for Hann window
                 T::from_f64(0.5 - 0.5 * angle.cos())
             }
         }
@@ -62,16 +70,18 @@ pub(crate) mod hann {
 
 // Hamming window module
 pub(crate) mod hamming {
-    use super::WindowValue;
+    use super::{WindowValue, usize_to_f64};
 
     /// Computes the symmetric Hamming window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    #[must_use]
     pub fn hamming_window<T: WindowValue>(n: usize, l: usize) -> T {
         hamming::<T>(n, l, true)
     }
 
     /// Computes the periodic Hamming window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    #[must_use]
     pub fn hamming_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
         hamming::<T>(n, l, false)
     }
@@ -99,7 +109,7 @@ pub(crate) mod hamming {
             // For lengths 2 or greater
             _ => {
                 let denom = if symmetric { l - 1 } else { l }; // Changes condition for periodic vs symmetric
-                let angle = 2.0 * std::f64::consts::PI * n as f64 / denom as f64; // Uses discrete-time formula for Hamming window
+                let angle = 2.0 * std::f64::consts::PI * usize_to_f64(n) / usize_to_f64(denom); // Uses discrete-time formula for Hamming window
                 T::from_f64(0.54 - 0.46 * angle.cos())
             }
         }
@@ -107,16 +117,18 @@ pub(crate) mod hamming {
 }
 
 pub(crate) mod blackmanharris {
-    use super::WindowValue;
+    use super::{WindowValue, usize_to_f64};
 
     /// Computes the symmetric Blackman-Harris window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    #[must_use]
     pub fn blackmanharris_window<T: WindowValue>(n: usize, l: usize) -> T {
         blackmanharris::<T>(n, l, true)
     }
 
     /// Computes the periodic Blackman-Harris window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    #[must_use]
     pub fn blackmanharris_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
         blackmanharris::<T>(n, l, false)
     }
@@ -144,7 +156,7 @@ pub(crate) mod blackmanharris {
             // For lengths 2 or greater
             _ => {
                 let denom = if symmetric { l - 1 } else { l }; // Changes condition for periodic vs symmetric
-                let angle = 2.0 * std::f64::consts::PI * n as f64 / denom as f64; // Uses discrete-time formula for Blackman-Harris window
+                let angle = 2.0 * std::f64::consts::PI * usize_to_f64(n) / usize_to_f64(denom); // Uses discrete-time formula for Blackman-Harris window
                 T::from_f64(
                     0.35875 - 0.48829 * angle.cos() + 0.14128 * (2.0 * angle).cos()
                         - 0.01168 * (3.0 * angle).cos(),
@@ -155,28 +167,30 @@ pub(crate) mod blackmanharris {
 }
 
 pub(crate) mod kaiser {
-    use super::WindowValue;
+    use super::{WindowValue, usize_to_f64};
 
     /// Computes the symmetric Kaiser window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    #[must_use]
     pub fn kaiser_window<T: WindowValue>(n: usize, l: usize, beta: f64) -> T {
         kaiser::<T>(n, l, beta, true)
     }
 
     /// Computes the periodic Kaiser window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    #[must_use]
     pub fn kaiser_window_periodic<T: WindowValue>(n: usize, l: usize, beta: f64) -> T {
         kaiser::<T>(n, l, beta, false)
     }
 
     /// Zero-order modified Bessel function of the first kind can be defined by the following:
-    /// I_0(x) = sum(0 -> infty, (((x/2)^k)/k!)^2)
+    /// `I_0(x)` = sum(0 -> infty, (((x/2)^k)/k!)^2)
     fn bessel_i0(x: f64) -> f64 {
         let mut sum = 1.0;
         let mut term = 1.0;
         // k only loops to 30 for reduced computation
         for k in 1..=30 {
-            term *= (x * x / 4.0) / ((k as f64) * (k as f64));
+            term *= (x * x / 4.0) / (f64::from(k) * f64::from(k));
             sum += term;
         }
         sum
@@ -185,7 +199,7 @@ pub(crate) mod kaiser {
     /// Internal crate function for calculating Kaiser window values.
     ///
     /// This function implements the discrete-time Kaiser window formula:
-    /// omega(n) = I_0 * (beta * sqrt(1 - x^2)) / I_0(beta), where x = 2n/D - 1, where D depends on the symmetry flag.
+    /// omega(n) = `I_0` * (beta * sqrt(1 - x^2)) / `I_0(beta)`, where x = 2n/D - 1, where D depends on the symmetry flag.
     /// For symmetry = 'true', D = l - 1;
     /// For symmetry = 'false', D = l.
     ///
@@ -204,7 +218,7 @@ pub(crate) mod kaiser {
 
             _ => {
                 let denom = if symmetric { l - 1 } else { l };
-                let x = (2.0 * n as f64 / denom as f64) - 1.0;
+                let x = (2.0 * usize_to_f64(n) / usize_to_f64(denom)) - 1.0;
                 let sqrt_term = if x.abs() >= 1.0 {
                     0.0
                 } else {

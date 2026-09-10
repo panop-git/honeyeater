@@ -8,10 +8,7 @@ use num_complex::{Complex, ComplexFloat};
 ///
 /// This is the primitive operation used by a complex mixer. Supplying an NCO
 /// sample as `rhs` performs frequency translation.
-pub fn complex_multiply<T: ComplexFloat>(
-    lhs: Complex<T>,
-    rhs: Complex<T>,
-) -> Complex<T> {
+pub fn complex_multiply<T: ComplexFloat>(lhs: Complex<T>, rhs: Complex<T>) -> Complex<T> {
     lhs * rhs
 }
 
@@ -22,10 +19,7 @@ pub fn complex_multiply<T: ComplexFloat>(
 /// `y = lhs * rhs*`
 ///
 /// This is the primitive normally used for frequency downconversion.
-pub fn complex_multiply_conjugate<T: ComplexFloat>(
-    lhs: Complex<T>,
-    rhs: Complex<T>,
-) -> Complex<T> {
+pub fn complex_multiply_conjugate<T: ComplexFloat>(lhs: Complex<T>, rhs: Complex<T>) -> Complex<T> {
     lhs * rhs.conj()
 }
 
@@ -103,11 +97,8 @@ fn saturate_i8(value: i64) -> i8 {
 /// # Panics
 ///
 /// Panics if `shift` is greater than 15.
-pub fn complex_multiply_i16(
-    lhs: Complex<i16>,
-    rhs: Complex<i16>,
-    shift: u32,
-) -> Complex<i16> {
+#[must_use]
+pub fn complex_multiply_i16(lhs: Complex<i16>, rhs: Complex<i16>, shift: u32) -> Complex<i16> {
     assert!(
         shift <= 15,
         "fixed-point i16 complex multiply shift must be <= 15"
@@ -138,6 +129,7 @@ pub fn complex_multiply_i16(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 15.
+#[must_use]
 pub fn complex_multiply_conjugate_i16(
     lhs: Complex<i16>,
     rhs: Complex<i16>,
@@ -173,11 +165,8 @@ pub fn complex_multiply_conjugate_i16(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 7.
-pub fn complex_multiply_i8(
-    lhs: Complex<i8>,
-    rhs: Complex<i8>,
-    shift: u32,
-) -> Complex<i8> {
+#[must_use]
+pub fn complex_multiply_i8(lhs: Complex<i8>, rhs: Complex<i8>, shift: u32) -> Complex<i8> {
     assert!(
         shift <= 7,
         "fixed-point i8 complex multiply shift must be <= 7"
@@ -206,6 +195,7 @@ pub fn complex_multiply_i8(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 7.
+#[must_use]
 pub fn complex_multiply_conjugate_i8(
     lhs: Complex<i8>,
     rhs: Complex<i8>,
@@ -233,18 +223,12 @@ pub fn complex_multiply_conjugate_i8(
 // Floating-point mixer convenience functions
 
 /// Mixes a floating-point signal up in frequency.
-pub fn mix_up<T: ComplexFloat>(
-    signal: Complex<T>,
-    nco: Complex<T>,
-) -> Complex<T> {
+pub fn mix_up<T: ComplexFloat>(signal: Complex<T>, nco: Complex<T>) -> Complex<T> {
     complex_multiply(signal, nco)
 }
 
 /// Mixes a floating-point signal down in frequency.
-pub fn mix_down<T: ComplexFloat>(
-    signal: Complex<T>,
-    nco: Complex<T>,
-) -> Complex<T> {
+pub fn mix_down<T: ComplexFloat>(signal: Complex<T>, nco: Complex<T>) -> Complex<T> {
     complex_multiply_conjugate(signal, nco)
 }
 
@@ -255,11 +239,8 @@ pub fn mix_down<T: ComplexFloat>(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 15.
-pub fn mix_up_fixed_i16(
-    signal: Complex<i16>,
-    nco: Complex<i16>,
-    shift: u32,
-) -> Complex<i16> {
+#[must_use]
+pub fn mix_up_fixed_i16(signal: Complex<i16>, nco: Complex<i16>, shift: u32) -> Complex<i16> {
     complex_multiply_i16(signal, nco, shift)
 }
 
@@ -268,11 +249,8 @@ pub fn mix_up_fixed_i16(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 15.
-pub fn mix_down_fixed_i16(
-    signal: Complex<i16>,
-    nco: Complex<i16>,
-    shift: u32,
-) -> Complex<i16> {
+#[must_use]
+pub fn mix_down_fixed_i16(signal: Complex<i16>, nco: Complex<i16>, shift: u32) -> Complex<i16> {
     complex_multiply_conjugate_i16(signal, nco, shift)
 }
 
@@ -281,11 +259,8 @@ pub fn mix_down_fixed_i16(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 7.
-pub fn mix_up_fixed_i8(
-    signal: Complex<i8>,
-    nco: Complex<i8>,
-    shift: u32,
-) -> Complex<i8> {
+#[must_use]
+pub fn mix_up_fixed_i8(signal: Complex<i8>, nco: Complex<i8>, shift: u32) -> Complex<i8> {
     complex_multiply_i8(signal, nco, shift)
 }
 
@@ -294,11 +269,8 @@ pub fn mix_up_fixed_i8(
 /// # Panics
 ///
 /// Panics if `shift` is greater than 7.
-pub fn mix_down_fixed_i8(
-    signal: Complex<i8>,
-    nco: Complex<i8>,
-    shift: u32,
-) -> Complex<i8> {
+#[must_use]
+pub fn mix_down_fixed_i8(signal: Complex<i8>, nco: Complex<i8>, shift: u32) -> Complex<i8> {
     complex_multiply_conjugate_i8(signal, nco, shift)
 }
 
@@ -316,33 +288,23 @@ mod tests {
             .join(filename)
     }
 
-    fn assert_complex_f64_close(
-        actual: &[Complex<f64>],
-        expected: &[Complex<f64>],
-    ) {
+    fn assert_complex_f64_close(actual: &[Complex<f64>], expected: &[Complex<f64>]) {
         let actual_re: Vec<f64> = actual.iter().map(|sample| sample.re).collect();
         let actual_im: Vec<f64> = actual.iter().map(|sample| sample.im).collect();
 
-        let expected_re: Vec<f64> =
-            expected.iter().map(|sample| sample.re).collect();
-        let expected_im: Vec<f64> =
-            expected.iter().map(|sample| sample.im).collect();
+        let expected_re: Vec<f64> = expected.iter().map(|sample| sample.re).collect();
+        let expected_im: Vec<f64> = expected.iter().map(|sample| sample.im).collect();
 
         assert_close!(actual_re, expected_re, rtol = 1e-12, atol = 1e-15);
         assert_close!(actual_im, expected_im, rtol = 1e-12, atol = 1e-15);
     }
 
-    fn assert_complex_f32_close(
-        actual: &[Complex<f32>],
-        expected: &[Complex<f32>],
-    ) {
+    fn assert_complex_f32_close(actual: &[Complex<f32>], expected: &[Complex<f32>]) {
         let actual_re: Vec<f32> = actual.iter().map(|sample| sample.re).collect();
         let actual_im: Vec<f32> = actual.iter().map(|sample| sample.im).collect();
 
-        let expected_re: Vec<f32> =
-            expected.iter().map(|sample| sample.re).collect();
-        let expected_im: Vec<f32> =
-            expected.iter().map(|sample| sample.im).collect();
+        let expected_re: Vec<f32> = expected.iter().map(|sample| sample.re).collect();
+        let expected_im: Vec<f32> = expected.iter().map(|sample| sample.im).collect();
 
         assert_close!(actual_re, expected_re, rtol = 1e-6, atol = 1e-7);
         assert_close!(actual_im, expected_im, rtol = 1e-6, atol = 1e-7);
@@ -351,19 +313,13 @@ mod tests {
     #[test]
     fn test_complex_multiply_f64_matches_numpy_oracle() {
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_f64(&vector_path(&format!(
-                "input_f64_{n}.npy"
-            )))
+            let lhs = npy::load_complex_f64(&vector_path(&format!("input_f64_{n}.npy")))
                 .expect("failed to load f64 mixer input vector");
 
-            let rhs = npy::load_complex_f64(&vector_path(&format!(
-                "nco_f64_{n}.npy"
-            )))
+            let rhs = npy::load_complex_f64(&vector_path(&format!("nco_f64_{n}.npy")))
                 .expect("failed to load f64 mixer NCO vector");
 
-            let expected = npy::load_complex_f64(&vector_path(&format!(
-                "multiply_f64_{n}.npy"
-            )))
+            let expected = npy::load_complex_f64(&vector_path(&format!("multiply_f64_{n}.npy")))
                 .expect("failed to load f64 complex multiply reference vector");
 
             let actual: Vec<Complex<f64>> = lhs
@@ -379,20 +335,15 @@ mod tests {
     #[test]
     fn test_complex_multiply_conjugate_f64_matches_numpy_oracle() {
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_f64(&vector_path(&format!(
-                "input_f64_{n}.npy"
-            )))
+            let lhs = npy::load_complex_f64(&vector_path(&format!("input_f64_{n}.npy")))
                 .expect("failed to load f64 mixer input vector");
 
-            let rhs = npy::load_complex_f64(&vector_path(&format!(
-                "nco_f64_{n}.npy"
-            )))
+            let rhs = npy::load_complex_f64(&vector_path(&format!("nco_f64_{n}.npy")))
                 .expect("failed to load f64 mixer NCO vector");
 
-            let expected = npy::load_complex_f64(&vector_path(&format!(
-                "multiply_conj_f64_{n}.npy"
-            )))
-                .expect("failed to load f64 conjugate multiply reference vector");
+            let expected =
+                npy::load_complex_f64(&vector_path(&format!("multiply_conj_f64_{n}.npy")))
+                    .expect("failed to load f64 conjugate multiply reference vector");
 
             let actual: Vec<Complex<f64>> = lhs
                 .iter()
@@ -407,19 +358,13 @@ mod tests {
     #[test]
     fn test_complex_multiply_f32_matches_numpy_oracle() {
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_f32(&vector_path(&format!(
-                "input_f32_{n}.npy"
-            )))
+            let lhs = npy::load_complex_f32(&vector_path(&format!("input_f32_{n}.npy")))
                 .expect("failed to load f32 mixer input vector");
 
-            let rhs = npy::load_complex_f32(&vector_path(&format!(
-                "nco_f32_{n}.npy"
-            )))
+            let rhs = npy::load_complex_f32(&vector_path(&format!("nco_f32_{n}.npy")))
                 .expect("failed to load f32 mixer NCO vector");
 
-            let expected = npy::load_complex_f32(&vector_path(&format!(
-                "multiply_f32_{n}.npy"
-            )))
+            let expected = npy::load_complex_f32(&vector_path(&format!("multiply_f32_{n}.npy")))
                 .expect("failed to load f32 complex multiply reference vector");
 
             let actual: Vec<Complex<f32>> = lhs
@@ -437,19 +382,13 @@ mod tests {
         const SHIFT: u32 = 15;
 
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_i16(&vector_path(&format!(
-                "input_i16_{n}.npy"
-            )))
+            let lhs = npy::load_complex_i16(&vector_path(&format!("input_i16_{n}.npy")))
                 .expect("failed to load i16 mixer input vector");
 
-            let rhs = npy::load_complex_i16(&vector_path(&format!(
-                "nco_i16_{n}.npy"
-            )))
+            let rhs = npy::load_complex_i16(&vector_path(&format!("nco_i16_{n}.npy")))
                 .expect("failed to load i16 mixer NCO vector");
 
-            let expected = npy::load_complex_i16(&vector_path(&format!(
-                "multiply_i16_{n}.npy"
-            )))
+            let expected = npy::load_complex_i16(&vector_path(&format!("multiply_i16_{n}.npy")))
                 .expect("failed to load i16 complex multiply reference vector");
 
             let actual: Vec<Complex<i16>> = lhs
@@ -467,20 +406,15 @@ mod tests {
         const SHIFT: u32 = 15;
 
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_i16(&vector_path(&format!(
-                "input_i16_{n}.npy"
-            )))
+            let lhs = npy::load_complex_i16(&vector_path(&format!("input_i16_{n}.npy")))
                 .expect("failed to load i16 mixer input vector");
 
-            let rhs = npy::load_complex_i16(&vector_path(&format!(
-                "nco_i16_{n}.npy"
-            )))
+            let rhs = npy::load_complex_i16(&vector_path(&format!("nco_i16_{n}.npy")))
                 .expect("failed to load i16 mixer NCO vector");
 
-            let expected = npy::load_complex_i16(&vector_path(&format!(
-                "multiply_conj_i16_{n}.npy"
-            )))
-                .expect("failed to load i16 conjugate multiply reference vector");
+            let expected =
+                npy::load_complex_i16(&vector_path(&format!("multiply_conj_i16_{n}.npy")))
+                    .expect("failed to load i16 conjugate multiply reference vector");
 
             let actual: Vec<Complex<i16>> = lhs
                 .iter()
@@ -497,19 +431,13 @@ mod tests {
         const SHIFT: u32 = 7;
 
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_i8(&vector_path(&format!(
-                "input_i8_{n}.npy"
-            )))
+            let lhs = npy::load_complex_i8(&vector_path(&format!("input_i8_{n}.npy")))
                 .expect("failed to load i8 mixer input vector");
 
-            let rhs = npy::load_complex_i8(&vector_path(&format!(
-                "nco_i8_{n}.npy"
-            )))
+            let rhs = npy::load_complex_i8(&vector_path(&format!("nco_i8_{n}.npy")))
                 .expect("failed to load i8 mixer NCO vector");
 
-            let expected = npy::load_complex_i8(&vector_path(&format!(
-                "multiply_i8_{n}.npy"
-            )))
+            let expected = npy::load_complex_i8(&vector_path(&format!("multiply_i8_{n}.npy")))
                 .expect("failed to load i8 complex multiply reference vector");
 
             let actual: Vec<Complex<i8>> = lhs
@@ -527,19 +455,13 @@ mod tests {
         const SHIFT: u32 = 7;
 
         for n in [8usize, 16, 64] {
-            let lhs = npy::load_complex_i8(&vector_path(&format!(
-                "input_i8_{n}.npy"
-            )))
+            let lhs = npy::load_complex_i8(&vector_path(&format!("input_i8_{n}.npy")))
                 .expect("failed to load i8 mixer input vector");
 
-            let rhs = npy::load_complex_i8(&vector_path(&format!(
-                "nco_i8_{n}.npy"
-            )))
+            let rhs = npy::load_complex_i8(&vector_path(&format!("nco_i8_{n}.npy")))
                 .expect("failed to load i8 mixer NCO vector");
 
-            let expected = npy::load_complex_i8(&vector_path(&format!(
-                "multiply_conj_i8_{n}.npy"
-            )))
+            let expected = npy::load_complex_i8(&vector_path(&format!("multiply_conj_i8_{n}.npy")))
                 .expect("failed to load i8 conjugate multiply reference vector");
 
             let actual: Vec<Complex<i8>> = lhs

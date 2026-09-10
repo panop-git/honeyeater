@@ -6,6 +6,7 @@ pub trait BiquadScalar:
     fn from_f64(value: f64) -> Self;
 }
 
+#[allow(clippy::cast_possible_truncation)]
 impl BiquadScalar for f32 {
     fn from_f64(value: f64) -> Self {
         value as f32
@@ -32,6 +33,7 @@ pub struct Biquad<T: BiquadScalar> {
 
 impl<T: BiquadScalar> Biquad<T> {
     /// Establish coefficients for lowpass filter
+    #[must_use]
     pub fn lowpass(sample_rate: f64, cutoff_freq: f64, q: f64) -> Self {
         let w0 = 2.0 * std::f64::consts::PI * cutoff_freq / sample_rate;
         let alpha = w0.sin() / (2.0 * q);

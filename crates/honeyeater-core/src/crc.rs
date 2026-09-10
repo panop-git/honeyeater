@@ -12,13 +12,14 @@ const CRC16_ARC_POLY: u16 = 0xA001;
 
 /// Computes a CRC-32 Castagnoli checksum over `data`.
 ///
-/// This implements the RevEng `CRC-32/ISCSI` model, also known as CRC-32C:
+/// This implements the `RevEng` `CRC-32/ISCSI` model, also known as CRC-32C:
 ///
 /// - polynomial: `0x1EDC6F41`
 /// - initial value: `0xFFFFFFFF`
 /// - input reflected: true
 /// - output reflected: true
 /// - final XOR: `0xFFFFFFFF`
+#[must_use]
 pub fn crc32_castagnoli(data: &[u8]) -> u32 {
     let mut crc = 0xFFFF_FFFF;
 
@@ -39,13 +40,14 @@ pub fn crc32_castagnoli(data: &[u8]) -> u32 {
 
 /// Computes a CRC-16/ARC checksum over `data`.
 ///
-/// `CRC-16/ARC` is the algorithm listed by RevEng with the alias `CRC-16`.
+/// `CRC-16/ARC` is the algorithm listed by `RevEng` with the alias `CRC-16`.
 ///
 /// - polynomial: `0x8005`
 /// - initial value: `0x0000`
 /// - input reflected: true
 /// - output reflected: true
 /// - final XOR: `0x0000`
+#[must_use]
 pub fn crc16_arc(data: &[u8]) -> u16 {
     let mut crc = 0x0000;
 

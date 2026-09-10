@@ -16,6 +16,8 @@ use std::path::Path;
 
 use num_complex::Complex;
 
+/// Result type returned by `.npy` reference-vector loading operations.
+///
 pub type NpyResult<T> = Result<T, Box<dyn Error>>;
 
 /// Generic 1-Dimensional Loader
@@ -60,7 +62,6 @@ where
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// is not one-dimensional, contains pickled/object data, or has a dtype that
 /// cannot be deserialised as `f32`.
-#[must_use]
 pub fn load_f32(path: &Path) -> NpyResult<Vec<f32>> {
     load_1d(path)
 }
@@ -72,7 +73,6 @@ pub fn load_f32(path: &Path) -> NpyResult<Vec<f32>> {
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// is not one-dimensional, contains pickled/object data, or has a dtype that
 /// cannot be deserialised as `f64`.
-#[must_use]
 pub fn load_f64(path: &Path) -> NpyResult<Vec<f64>> {
     load_1d(path)
 }
@@ -84,7 +84,6 @@ pub fn load_f64(path: &Path) -> NpyResult<Vec<f64>> {
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// is not one-dimensional, contains pickled/object data, or has a dtype that
 /// cannot be deserialised as `Complex<f32>`.
-#[must_use]
 pub fn load_complex_f32(path: &Path) -> NpyResult<Vec<Complex<f32>>> {
     load_1d(path)
 }
@@ -96,7 +95,6 @@ pub fn load_complex_f32(path: &Path) -> NpyResult<Vec<Complex<f32>>> {
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// is not one-dimensional, contains pickled/object data, or has a dtype that
 /// cannot be deserialised as `Complex<f64>`.
-#[must_use]
 pub fn load_complex_f64(path: &Path) -> NpyResult<Vec<Complex<f64>>> {
     load_1d(path)
 }
@@ -120,7 +118,7 @@ where
                 npy.shape()
             ),
         )
-            .into());
+        .into());
     }
 
     if npy.uses_pickled_array() {
@@ -128,13 +126,15 @@ where
             ErrorKind::InvalidData,
             "pickled/object .npy arrays are not supported",
         )
-            .into());
+        .into());
     }
 
     let flat_data: Vec<T> = npy.into_vec()?;
 
     Ok(flat_data
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|chunk| Complex::new(chunk[0], chunk[1]))
         .collect())
 }
@@ -146,7 +146,6 @@ where
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// does not have shape `[N, 2]`, contains pickled/object data, or has an
 /// incompatible dtype.
-#[must_use]
 pub fn load_complex_i8(path: &Path) -> NpyResult<Vec<Complex<i8>>> {
     load_complex_integer_pairs(path)
 }
@@ -158,7 +157,6 @@ pub fn load_complex_i8(path: &Path) -> NpyResult<Vec<Complex<i8>>> {
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// does not have shape `[N, 2]`, contains pickled/object data, or has an
 /// incompatible dtype.
-#[must_use]
 pub fn load_complex_i16(path: &Path) -> NpyResult<Vec<Complex<i16>>> {
     load_complex_integer_pairs(path)
 }
@@ -170,7 +168,6 @@ pub fn load_complex_i16(path: &Path) -> NpyResult<Vec<Complex<i16>>> {
 /// Returns an error if the file cannot be opened, is not a valid `.npy` file,
 /// does not have shape `[N, 2]`, contains pickled/object data, or has an
 /// incompatible dtype.
-#[must_use]
 pub fn load_complex_i32(path: &Path) -> NpyResult<Vec<Complex<i32>>> {
     load_complex_integer_pairs(path)
 }

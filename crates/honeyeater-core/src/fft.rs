@@ -1,17 +1,19 @@
 use num_complex::Complex;
 
+#[cfg(test)]
 pub(crate) mod phastft_impl;
+#[cfg(test)]
 pub(crate) mod rustfft_impl;
 
 /// A trait that abstracts over different FFT backends, allowing for interchangeable implementations.
-/// Currently works for PhastFT and RustFFT
+/// Currently works for `PhastFT` and `RustFFT`
 pub trait FftWrapper<T> {
     /// Performs a forward Fast Fourier Transform on the provided buffer of complex numbers.
-    /// Uses generic type parameter <T> for flexibility
+    /// Uses generic type parameter `T` for flexibility
     fn fft(&self, buffer: &mut [Complex<T>]);
 
     /// Performs a inverse Fast Fourier Transform on the provided buffer of complex numbers.
-    /// Uses generic type parameter <T> for flexibility
+    /// Uses generic type parameter `T` for flexibility
     fn ifft(&self, buffer: &mut [Complex<T>]);
 
     /// Returns the size of the FFT that the backend is configured to handle.
@@ -31,13 +33,14 @@ mod tests {
         fn to_f64(self) -> f64;
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     impl FftScalar for f32 {
         fn from_f64(value: f64) -> Self {
             value as f32
         }
 
         fn to_f64(self) -> f64 {
-            self as f64
+            f64::from(self)
         }
     }
 
@@ -84,11 +87,11 @@ mod tests {
 
     // Generic test executor so both backends run through the exact same assertions
     fn run_backend_against_oracle<T: FftScalar>(backend: &dyn FftWrapper<T>, size: usize) {
-        let expected_input = load_complex_vector::<T>(&format!("input_{}.npy", size))
+        let expected_input = load_complex_vector::<T>(&format!("input_{size}.npy"))
             .expect("failed to load complex FFT reference vector");
-        let expected_fft = load_complex_vector::<T>(&format!("fft_{}.npy", size))
+        let expected_fft = load_complex_vector::<T>(&format!("fft_{size}.npy"))
             .expect("failed to load complex FFT reference vector");
-        let expected_ifft = load_complex_vector::<T>(&format!("ifft_{}.npy", size))
+        let expected_inverse = load_complex_vector::<T>(&format!("ifft_{size}.npy"))
             .expect("failed to load complex FFT reference vector");
 
         let mut buffer = expected_input.clone();
@@ -99,7 +102,7 @@ mod tests {
 
         // Test Inverse FFT
         backend.ifft(&mut buffer);
-        assert_complex_close(&buffer, &expected_ifft);
+        assert_complex_close(&buffer, &expected_inverse);
     }
 
     fn assert_rustfft_matches_oracle<T: FftScalar + rustfft::FftNum>() {

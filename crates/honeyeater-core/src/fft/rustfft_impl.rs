@@ -32,8 +32,9 @@ impl<T: FftNum> FftWrapper<T> for RustFftBackend<T> {
     fn ifft(&self, buffer: &mut [Complex<T>]) {
         self.inverse.process(buffer);
 
-        // Cast the normalisation factor into the generic type T
-        let n_inv = T::from_f64(1.0 / buffer.len() as f64).unwrap();
+        // FFT buffers larger than u32::MAX elements are not practically allocatable.
+        let length = u32::try_from(buffer.len()).expect("FFT length exceeds u32::MAX");
+        let n_inv = T::from_f64(1.0 / f64::from(length)).unwrap();
         for x in buffer.iter_mut() {
             *x = *x * n_inv;
         }

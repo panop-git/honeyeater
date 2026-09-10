@@ -37,6 +37,7 @@ impl<T: Sample> Nco<T> {
     /// # Panics
     ///
     /// Panics if `frequency` is not finite.
+    #[must_use]
     pub fn new(frequency: f64) -> Self {
         Self::with_phase(frequency, 0.0)
     }
@@ -49,6 +50,7 @@ impl<T: Sample> Nco<T> {
     /// # Panics
     ///
     /// Panics if `frequency` or `phase` is not finite.
+    #[must_use]
     pub fn with_phase(frequency: f64, phase: f64) -> Self {
         assert!(frequency.is_finite(), "NCO frequency must be finite");
         assert!(phase.is_finite(), "NCO phase must be finite");
@@ -85,6 +87,7 @@ impl<T: Sample> Nco<T> {
     }
 
     /// Returns the current oscillator phase in cycles in `[0, 1)`.
+    #[must_use]
     pub fn phase(&self) -> f64 {
         f64::from(self.phase) / PHASE_MODULUS
     }
@@ -214,6 +217,7 @@ mod tests {
 
     const ORACLE_LENGTH: usize = 64;
     const ORACLE_FREQUENCY: f64 = 5.0 / 64.0;
+    const SFDR_FREQUENCY: f64 = 37.0 / 4096.0;
 
     fn vector_path(filename: &str) -> PathBuf {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -245,11 +249,7 @@ mod tests {
     ///
     /// The input tone is deliberately coherent with the FFT length, so
     /// spectral leakage does not need a window and any other bin is a spur.
-    fn assert_sfdr(
-        mut samples: Vec<Complex<f64>>,
-        carrier_bin: usize,
-        minimum_sfdr_db: f64,
-    ) {
+    fn assert_sfdr(mut samples: Vec<Complex<f64>>, carrier_bin: usize, minimum_sfdr_db: f64) {
         assert!(
             carrier_bin < samples.len(),
             "carrier bin must lie inside FFT"
@@ -348,8 +348,7 @@ mod tests {
         const LENGTH: usize = 4096;
         const CARRIER_BIN: usize = 37;
 
-        let mut nco =
-            Nco::<Complex<f64>>::new(CARRIER_BIN as f64 / LENGTH as f64);
+        let mut nco = Nco::<Complex<f64>>::new(SFDR_FREQUENCY);
 
         let mut samples = vec![Complex::default(); LENGTH];
         nco.fill(&mut samples);
@@ -362,8 +361,7 @@ mod tests {
         const LENGTH: usize = 4096;
         const CARRIER_BIN: usize = 37;
 
-        let mut nco =
-            Nco::<Complex<f32>>::new(CARRIER_BIN as f64 / LENGTH as f64);
+        let mut nco = Nco::<Complex<f32>>::new(SFDR_FREQUENCY);
 
         let mut native = vec![Complex::default(); LENGTH];
         nco.fill(&mut native);
@@ -381,8 +379,7 @@ mod tests {
         const LENGTH: usize = 4096;
         const CARRIER_BIN: usize = 37;
 
-        let mut nco =
-            Nco::<Complex<i16>>::new(CARRIER_BIN as f64 / LENGTH as f64);
+        let mut nco = Nco::<Complex<i16>>::new(SFDR_FREQUENCY);
 
         let mut native = vec![Complex::default(); LENGTH];
         nco.fill(&mut native);
@@ -400,8 +397,7 @@ mod tests {
         const LENGTH: usize = 4096;
         const CARRIER_BIN: usize = 37;
 
-        let mut nco =
-            Nco::<Complex<i8>>::new(CARRIER_BIN as f64 / LENGTH as f64);
+        let mut nco = Nco::<Complex<i8>>::new(SFDR_FREQUENCY);
 
         let mut native = vec![Complex::default(); LENGTH];
         nco.fill(&mut native);

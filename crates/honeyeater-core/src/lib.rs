@@ -22,9 +22,9 @@ mod biquad;
 mod crc;
 mod fft;
 mod mixer;
+mod nco;
 mod sample;
 mod windows;
-mod nco;
 
 pub use sample::Sample;
 
@@ -45,18 +45,9 @@ pub use fft::FftWrapper;
 
 // Brings complex multiply and mixer primitives into current scope
 pub use mixer::{
-    complex_multiply,
-    complex_multiply_conjugate,
-    complex_multiply_conjugate_i16,
-    complex_multiply_conjugate_i8,
-    complex_multiply_i16,
-    complex_multiply_i8,
-    mix_down,
-    mix_down_fixed_i16,
-    mix_down_fixed_i8,
-    mix_up,
-    mix_up_fixed_i16,
-    mix_up_fixed_i8,
+    complex_multiply, complex_multiply_conjugate, complex_multiply_conjugate_i8,
+    complex_multiply_conjugate_i16, complex_multiply_i8, complex_multiply_i16, mix_down,
+    mix_down_fixed_i8, mix_down_fixed_i16, mix_up, mix_up_fixed_i8, mix_up_fixed_i16,
 };
 
 // Brings NCO / DDS processor into current scope
