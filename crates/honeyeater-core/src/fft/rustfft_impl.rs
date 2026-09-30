@@ -60,7 +60,7 @@ impl<T: FftNum> RustFftBackend<T> {
 
     /// Returns a bin's signed frequency, in cycles per sample.
     ///
-    /// Uses the SciPy `fftfreq` ordering: DC, positive frequencies, then negative
+    /// Uses the `SciPy` `fftfreq` ordering: DC, positive frequencies, then negative
     /// frequencies. For even lengths, the Nyquist bin represents `-0.5`.
     ///
     /// # Panics
