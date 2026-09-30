@@ -1,4 +1,4 @@
-//! Core types for the honeyeater DSP library.
+//! Core types and Phase 1 DSP primitives for the honeyeater library.
 //!
 //! This crate provides:
 //!
@@ -10,8 +10,12 @@
 //! - A re-export of [`num_complex`] so downstream code has a stable import
 //!   path independent of `rustfft`'s version pinning.
 //!
-//! No DSP kernels live here yet; this crate is currently the type-and-trait
-//! substrate that Phase 1 kernels will build on. See `docs/roadmap.md`.
+//! Version 0.0.1 includes the window family, RBJ low-pass [`Biquad`],
+//! [`FirFilter`], [`Nco`], float and fixed-point mixer primitives, [`q_format`]
+//! and SDR boundary helpers, CRCs, and the CCSDS RS(255,223) encoder.
+//! The API is experimental. [`FftWrapper`] defines the FFT backend contract;
+//! the `PhastFT` and `RustFFT` implementations currently exist only in tests.
+//! See `docs/roadmap.md` for validation status and remaining release gates.
 
 #![forbid(unsafe_code)]
 
@@ -22,6 +26,7 @@ mod biquad;
 mod crc;
 mod fft;
 mod fir;
+mod magnitude;
 mod mixer;
 mod nco;
 pub mod q_format;
@@ -30,6 +35,9 @@ mod sample;
 mod sdr_boundary;
 mod windows;
 
+pub use magnitude::{
+    MagnitudeSample, complex_magnitude, complex_magnitudes, complex_power, complex_powers,
+};
 pub use sample::Sample;
 
 // Brings window functions into current scope from their sub-modules
@@ -45,7 +53,7 @@ pub use crc::{crc16_arc, crc32_castagnoli};
 pub use biquad::Biquad;
 
 // Brings FFT function into current scope
-pub use fft::FftWrapper;
+pub use fft::{FftWrapper, RustFftBackend};
 
 // Brings complex multiply and mixer primitives into current scope
 pub use mixer::{

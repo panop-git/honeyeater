@@ -2,7 +2,11 @@
 
 ## Status
 
-Pre-v0.0.1. Phase 0 (workspace scaffolding, CI, test harness, crates.io name reservation) is complete; Phase 1 kernels have not started.
+Source version **0.0.1 is prepared for the first kernel release**. Phase 0 scaffolding is complete. Phase 1 steps 1–3 and 5–10 are implemented and exposed through the `honeyeater` facade; their tests use committed SciPy/NumPy fixtures, reveng CRC check values, fixed-point bounds, and CCSDS/libfec references. Step 4 has oracle-tested FFT backends, but those implementations are currently compiled only for core tests; only `FftWrapper` is public.
+
+The API remains experimental. Before publication, expose a usable FFT backend constructor and validate the cross-platform CI matrix. Version preparation does not publish crates or create the public release repository. CUDA remains a placeholder, and the later Tier-1 and Phase 2 kernels remain planned.
+
+Local validation on 2026-09-30 passed: formatting, Clippy with warnings denied, 79 unit tests, two facade doc tests, rustdoc with warnings denied, `cargo deny check`, and the mdBook build. All 99 `.npy` fixtures emitted by the current generators reproduce byte-for-byte with the canonical NumPy/SciPy pins. The libfec codeword fixtures were checked by the encoder tests; their generator was not rerun during this release preparation.
 
 ## The plan in one sentence
 
@@ -14,8 +18,9 @@ A Cargo workspace, deliberately small at first release:
 
 ```
 honeyeater         facade crate
-honeyeater-core    sample type, signal container, device traits, tolerance vocabulary
-honeyeater-test    cross-validation helpers (dev-only, not shipped to users)
+honeyeater-core    sample types and Phase 1 DSP primitives
+honeyeater-test    published cross-validation helpers (use as a dev-dependency)
+honeyeater-cuda    placeholder for the deferred GPU backend
 ```
 
 Additional crates split out when real dependency boundaries appear (a CUDA backend, a proc-macro, a heavy optional dep) — not pre-emptively. Reference points: `rustfft` and `realfft` are single-crate libraries (rustfft auto-detects AVX at runtime and exposes opt-in features for NEON and other paths); `tokio` and `ratatui` split crates only when a real boundary forces it.
@@ -24,7 +29,7 @@ A separate `tools/oracle-gen/` workspace, **outside the published crate set**, h
 
 ## Test methodology
 
-The tolerance vocabulary below is implemented in `honeyeater-test`; see [testing.md](testing.md) for how to use it. The default thresholds and the reproducibility mitigations further down are still intentions — nothing exercises them until Phase 1 kernels exist.
+The tolerance vocabulary below is implemented in `honeyeater-test`; see [testing.md](testing.md) for how to use it. Phase 1 tests exercise the window, biquad, FFT, FIR, NCO, mixer, CRC, and encoder checks. Thresholds for later kernels remain targets; reproducibility measures are distinguished below by implementation status.
 
 ### Tolerance vocabulary
 
@@ -42,7 +47,7 @@ A small, fixed set of measures, used consistently across the codebase. Per-test 
 
 Percentage (relative) tolerance is **not** the default. The field consensus (numpy, scipy, MATLAB, EBU, liquid-dsp) is the mixed predicate above for pointwise tests, because percentage breaks on zero crossings and is insensitive to dynamic range. Percentage survives only as an aggregate scalar metric (EVM, BER, loudness offsets) where it is genuinely appropriate.
 
-### Default thresholds per module class (intended)
+### Default thresholds per module class (implemented where covered; targets otherwise)
 
 | Module class | Primary measure | Threshold | Source |
 |---|---|---|---|
@@ -62,13 +67,15 @@ Percentage (relative) tolerance is **not** the default. The field consensus (num
 
 ### Cross-platform reproducibility
 
-Floating-point reproducibility across x86 / aarch64 / glibc / musl / Apple libm is not free. Mitigations to bake into the test harness as Phase 1 kernels land (none are in place yet):
+Floating-point reproducibility across x86 / aarch64 / glibc / musl / Apple libm is not free. Current mitigations:
 
-- Force `-ffp-contract=off` in test config (or pin a no-FMA reference path) so FMA contraction doesn't change results across ISAs.
-- Offer a "deterministic" feature flag that forces sequential reduction in tests, so SIMD/parallel reduction order doesn't change FFT/dot-product results across CPUs.
-- Bake reference vectors into `tests/vectors/` as `.npy` files — never recompute libm references in CI, since `sin`/`exp`/`log` differ by a few ULP across libm implementations.
-- Force IEEE compliance in test config (no subnormal flush-to-zero).
-- Pin oracle versions: `requirements.txt` next to fixture-generation scripts should record exact scipy / numpy versions so vectors are reproducible.
+- **Implemented:** committed `.npy` fixtures under `crates/honeyeater-core/tests/vectors/`, plus `.bin` CCSDS codewords. CI compares against them rather than regenerating libm references.
+- **Implemented:** one canonical `tools/oracle-gen/requirements.txt` pinning NumPy 2.5.1 and SciPy 1.18.0; the libfec generator pins its source commit separately. Regeneration instructions and provenance are in `tools/oracle-gen/README.md`.
+- **Planned:** an explicit no-FMA reference path / contraction control.
+- **Planned:** a deterministic feature to fix backend reduction order.
+- **Planned:** explicit checks against subnormal flush-to-zero.
+
+The current tests use mixed tolerances, SNR thresholds, or bit-exact comparisons appropriate to each kernel; they do not claim bit-identical floating-point output across platforms.
 
 ### Statistical tests in CI
 
@@ -76,7 +83,7 @@ Tests that *look* statistical but run in PR CI should use a fixed seed and act a
 
 ## Oracle stack by module category (planned)
 
-The library's content is intended to be organised into six categories. Each has a primary numerical oracle (and a secondary cross-check where one is genuinely independent). The scipy-runner and `.npy`-loader entry points in `honeyeater-test` are Phase 0 stubs (`unimplemented!` until the first kernel needs them); each oracle gets wired up when its first kernel lands:
+The library's content is intended to be organised into six categories. Each has a primary numerical oracle (and a secondary cross-check where one is genuinely independent). The Python subprocess runner and `.npy` loaders in `honeyeater-test` are implemented. Phase 1 uses committed fixtures from the pinned generators; additional oracles below remain planned until their kernels land:
 
 ### Cat 0 — Numerical kernels (prerequisite layer)
 Matrix decompositions, polynomial roots, special functions, sequence generators (Gold, Kasami, m-sequences, Zadoff-Chu, Barker, PN).
@@ -90,7 +97,7 @@ FFT, DCT, STFT, Hilbert, wavelet (deferred), spectral-estimation algorithms (Wel
 - **Primary oracle:** scipy.signal + scipy.fft (BSD-3)
 - **Secondary:** FFTW via `pyfftw`, because scipy uses pocketfft and FFTW is genuinely independent
 - **Known weaknesses:** scipy's high-order elliptic and `firls` have documented divergences from MATLAB; Octave's `signal` package is the tiebreaker for those corner cases. Always generate filter coefficients in SOS form when comparing.
-- **FFT delegation (planned):** rustfft will be the implementation. honeyeater will wrap it for API consistency rather than reimplement.
+- **FFT delegation:** PhastFT and RustFFT implementations share the `FftWrapper` contract and are tested against SciPy. Their constructors remain test-only; choosing and exposing a public backend is a release gate.
 
 ### Cat 2 — Filters and resampling
 FIR/IIR/biquad design, polyphase, adaptive filters in their *filter* role (LMS as denoiser), integer/rational/Farrow resamplers.
@@ -135,7 +142,7 @@ All items are **complete**. The list is kept for the record of what Phase 0 comm
 
 1. Cargo workspace skeleton: workspace `Cargo.toml` at root, `honeyeater` (facade), `honeyeater-core` (sample types, trait definitions, signal containers), `honeyeater-test` (cross-validation helpers).
 2. The `Sample` trait plus the fixed-point sample type set in `honeyeater-core`: `Complex<i16>` and `Complex<i8>` as kernel sample types (`Sample`-implementing); `Complex<u8>` as a transport-only type at the SDR boundary, debiased to one of the others before any kernel touches it (the three integer formats produced by SDR hardware across the field — see `docs/architecture-planning.md` for the landscape and decisions 5–6 for the rationale). The trait is satisfied by `f32`, `f64`, `i16`, `i8` (and their `Complex<…>` wrappings). Without this wiring, generic kernels can't be written and fixed-point can't ship at 0.0.1. Goes in before any kernel.
-3. Wire up the FFT backend dependency in `honeyeater-core` — `phastft` as the default, behind the backend trait (`docs/architecture-planning.md` decision 11), used by Phase 1 step 4. `num-complex` re-exported through `honeyeater-core` so user code has a stable import path for the sample type.
+3. Wire up FFT backend dependencies in `honeyeater-core` (`phastft` and `rustfft`), used by Phase 1 step 4. `num-complex` is re-exported through `honeyeater-core` so user code has a stable import path for the sample type. A default public FFT constructor remains a release gate.
 4. `honeyeater-test`: the seven assertion macros, a `.npy` loader for committed reference vectors, a scipy-subprocess helper for live cross-validation. **This is the highest-leverage piece of infrastructure in the project.**
 5. The `tools/oracle-gen/` workspace, outside the published crate set, for generating reference vectors from libfec / AFF3CT / etc. without those libraries entering the library's link graph.
 6. CI: a single `ci.yml` with `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo doc` with `RUSTDOCFLAGS=-Dwarnings`, plus `cargo deny check`. Stable + MSRV + nightly.
@@ -144,18 +151,18 @@ All items are **complete**. The list is kept for the record of what Phase 0 comm
 
 ### Phase 1 — Tier-1 RF/electrical primitives, in order
 
-In rough order of "fastest validation win × highest user value":
+Steps 1–3 and 5–10 are implemented and public. Step 4 is implemented and validated in core tests, with a public constructor still outstanding. The original order was "fastest validation win × highest user value":
 
 1. **Hann window** — trivial, scipy bit-near oracle, exercises the entire test harness end-to-end before anything risky is built. Float-only initially (windows aren't typically fixed-point).
 2. **Hamming, Blackman-Harris, Kaiser windows** — same harness, rounds out the window family.
-3. **RBJ biquad coefficients + execution** — first filter, validates the design-coefficient testing path (formulas are the spec; cross-check execution against scipy `sosfilt`).
-4. **FFT wrapper** delegating to rustfft (complex-in / complex-out) — establishes the signal-type plumbing. Float-only (FFT in fixed-point is a separate non-trivial implementation). Real-input FFT (real → conjugate-symmetric complex, the `realfft` shape) is not part of 0.0.1; add when a kernel needs it.
+3. **RBJ low-pass biquad coefficients + execution** — first filter, validates the design-coefficient testing path (formulas are the spec; cross-check execution against scipy `sosfilt`).
+4. **FFT wrapper** with PhastFT and RustFFT backends (complex-in / complex-out; backend constructors currently test-only) — establishes the signal-type plumbing. Float-only (FFT in fixed-point is a separate non-trivial implementation). Real-input FFT (real → conjugate-symmetric complex, the `realfft` shape) is not part of 0.0.1; add when a kernel needs it.
 5. **CRC-32 (Castagnoli) and CRC-16** — first bit-exact test, reveng oracle, tiny code, no external dep.
 6. **NCO / DDS** — first stateful kernel, exercises SFDR property testing. **Implemented in both float and fixed-point** (`Complex<i16>` and `Complex<i8>`) — this is the first fixed-point kernel; it's small and well-defined so it's a good first proof of the trait machinery.
 7. **SDR sample boundary helpers** — conversions between `Complex<i16>` / `Complex<i8>` (kernel sample types) and `Complex<f32>` / `Complex<f64>`, with Q-format scaling as a parameter (so the same `i16` conversion serves USRP `sc16` at Q1.15 and BladeRF `SC16_Q11` at Q1.11 by passing the right scale), plus `Complex<u8>` → `Complex<i8>` / `Complex<f32>` debiasing for RTL-SDR (subtracting the 127.5 midpoint), plus optional deinterleave to separate I/Q arrays. Trivial code, but unblocks every SDR user. Tested by round-trip identity (for the lossless paths), value-range checks, and bias-handling correctness for the RTL-SDR path. **Ships alongside** a `q_format` module of named per-radio constants covering every radio with a current SoapySDR support module (USRP, BladeRF including `SC16_Q11`, `SC16_Q11_PACKED`, and `SC8_Q7` modes, HackRF, RTL-SDR, Airspy R2/Mini, Airspy HF+, SDRplay, Pluto with separate RX/TX constants, LimeSDR including the `CS12` packed variant, FCDPP, Sidekiq, Mirics, Red Pitaya, XTRX, Iris, NetSDR/Afedri, plus the SoapyOsmo/SoapyAudio/SoapyRemote shims) so users pass the constant for the radio they own rather than typing a raw scale. See `docs/architecture-planning.md` decision 6 for the full table.
 8. **FIR filter execution** — **implemented in both float and fixed-point.** Hot-path kernel; native fixed-point is what makes high-rate streaming receivers viable across SDR vendors. Cross-validate float version against scipy `lfilter`; cross-validate fixed-point against the float version (within Q-format quantisation bounds).
 9. **Complex multiply** (the mixer primitive) — **implemented in both float and fixed-point.** Tiny but ubiquitous; needed alongside the NCO for downconversion.
-10. **CCSDS Reed-Solomon (255, 223) encoder** — **first standards-conformance demo.** Bit-exact against CCSDS 131.0-B-5 Annex F worked examples plus libfec-generated vectors. This is the milestone that justifies cutting 0.0.1.
+10. **CCSDS Reed-Solomon (255, 223) encoder** — **first standards-conformance demo.** Complete codewords are bit-exact against the committed libfec fixtures. Separate tests check the CCSDS 131.0-B-5 Annex F basis-transformation examples, all-symbol basis round trips, and systematic output. The encoder milestone is implemented; the remaining release gates are listed above.
 
 Tier 1 then continues (no fixed-point unless explicitly noted): FIR design (window method, Parks-McClellan), IIR design (Butterworth/Chebyshev/Elliptic), polyphase resampling (consider fixed-point), mixer / IQ imbalance / DC offset removal (consider fixed-point), AGC (consider fixed-point), AWGN channel, PLL / Costas loop, Mueller & Müller timing recovery, linear modems (BPSK / QPSK / 8PSK / 16-QAM / 64-QAM), CPFSK / GMSK, Viterbi decoder, LMS / RLS equaliser. None of these block 0.0.1 — they ship as they're ready.
 
@@ -173,18 +180,18 @@ Tier 1 then continues (no fixed-point unless explicitly noted): FIR design (wind
 - Audio-perceptual kernels (entire category — out of scope; existing Rust library covers it)
 - High-assurance certification tooling (interval arithmetic, formal harness, requirements-traceability infrastructure) — premature without a target certification authority locked in
 
-## Cutting 0.0.1
+## Preparing and publishing 0.0.1
 
-When the milestone in Phase 1 step 10 is achieved (CCSDS RS(255, 223) bit-exact), and the harness, CI, scaffolding files, and the minimal kernel set are all green, cut 0.0.1 to a fresh public repository. The minimum kernel set for 0.0.1 is:
+The source manifests, internal dependency requirements, lockfile, and changelog now target 0.0.1. The CCSDS RS(255,223) milestone is implemented and oracle-tested. Finish the public FFT constructor and full release validation before publishing to a fresh public repository. The minimum kernel set is:
 
 - Window family (Hann, Hamming, Blackman-Harris, Kaiser)
-- RBJ biquad design and execution (float)
-- FFT wrapper around rustfft, complex-in / complex-out (float)
+- RBJ low-pass biquad design and execution (float)
+- FFT backend contract and oracle-tested PhastFT / RustFFT implementations (float; public constructor outstanding)
 - CRC-32 and CRC-16
 - NCO / DDS (float **and** fixed-point)
 - SDR sample boundary helpers (integer↔float, Q-format-aware)
 - FIR filter execution (float **and** fixed-point)
 - Complex multiply (float **and** fixed-point)
-- CCSDS RS(255, 223) encoder (bit-exact against Blue Book vectors)
+- CCSDS RS(255, 223) encoder (bit-exact against libfec codewords, with separate Blue Book basis-transformation checks)
 
 The current working tree remains the private development workspace; the public repo gets the polished cut.

@@ -11,7 +11,7 @@
 # supported compiler. Keep in sync with `rust-version` in Cargo.toml.
 msrv = "1.91"
 
-# Pre-0.0.1: we have no stable public API yet, so don't warn about changes
+# Pre-0.1.0: we have no stable public API yet, so don't warn about changes
 # that would be breaking. Revisit when we cut 0.1.0.
 avoid-breaking-exported-api = false
 

@@ -1,6 +1,9 @@
 """
 Generate oracle vectors for Honeyeater complex multiply / mixer primitives.
 
+Generate oracle vectors using the pinned Python environment defined in
+tools/oracle-gen/requirements.txt.
+
 Floating-point vectors use NumPy complex arithmetic.
 
 Fixed-point vectors model Honeyeater's widened integer arithmetic:

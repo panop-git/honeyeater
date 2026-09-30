@@ -1,7 +1,7 @@
 """
 Script generates oracle test values for FFT operations from scipy.
 
-NOTE: Ensure Python virtual environment is active, and all required imports have been installed from the requirements.txt file.
+NOTE: Use the pinned environment in tools/oracle-gen/requirements.txt.
 """
 
 from pathlib import Path
@@ -10,7 +10,7 @@ import scipy
 from scipy.fft import fft, ifft
 
 # Stores generated oracle vectors into tests/vectors directory
-refVector = Path("../../crates/honeyeater-core/tests/vectors/fft")
+refVector = Path(__file__).resolve().parents[3] / "crates/honeyeater-core/tests/vectors/fft"
 refVector.mkdir(parents=True, exist_ok=True)
 
 vecLength = [8, 16, 64]

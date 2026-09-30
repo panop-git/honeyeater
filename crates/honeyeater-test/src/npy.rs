@@ -4,7 +4,7 @@
 //! `tests/vectors/` in numpy's `.npy` binary format. This module loads them
 //! into native Rust slices for use by tests.
 //!
-//! # Phase 0 status
+//! # Supported data
 //!
 //! Implemented. Reference vectors are loaded using `npyz`, with shape
 //! validation appropriate to each vector type and rejection of pickled/object data.
@@ -55,6 +55,16 @@ where
 
     Ok(data)
 }
+/// Loads a one-dimensional `.npy` array of unsigned power or magnitude counts.
+///
+/// # Errors
+///
+/// Returns an error for unreadable files, invalid NPY data, a non-1-D shape,
+/// pickled/object arrays, or an incompatible dtype.
+pub fn load_u32(path: &Path) -> NpyResult<Vec<u32>> {
+    load_1d(path)
+}
+
 /// Load a `.npy` file containing a 1-D array of `f32` values.
 ///
 /// # Errors

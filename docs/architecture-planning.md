@@ -1,6 +1,6 @@
 # Architecture planning
 
-Architectural decisions for honeyeater pre-0.0.1, with rationale. All decisions below (numbered 1–10, with 3a as a sub-decision under 3) are now resolved. This document is the authoritative reference for design intent; if a future contributor wants to deviate from one of these, the deviation needs to update this file with reasoning.
+Architectural decisions for honeyeater's first kernel release, with rationale. All decisions below (numbered 1–10, with 3a as a sub-decision under 3) are now resolved. This document is the authoritative reference for design intent; if a future contributor wants to deviate from one of these, the deviation needs to update this file with reasoning.
 
 ## Constraints
 
@@ -160,7 +160,7 @@ User code reads as: `let floats = sdr::to_complex_f32(samples, q_format::BLADERF
 
 This is **not** vendor-specific code (no driver bindings, no I/O paths, no licence entanglements) — just named constants and a docs table. It makes the bare `Complex<i16>` / `Complex<i8>` representation safe in practice: the Q-format-mixing bug only fires if a user types raw scaling numbers, and the constants make that unnecessary. The SoapySDR API itself does not standardise Q-format per radio — only `fullScale` — so this table is the canonical mapping; it should be updated whenever a new SoapySDR module appears or an existing one changes its native format.
 
-**Open question for first implementation**: whether `Complex<i16>` and `Complex<i8>` are used directly, or whether they're wrapped in newtypes (`Sc16`, `Sc8` or similar) for type clarity at API boundaries. The trade-off: direct use is more familiar and composes more easily with other Rust crates; newtypes catch a residual class of "I passed USRP Q1.15 samples to a function expecting BladeRF Q1.11 samples" mistakes at compile time, even when the named constants above are used at conversion time. With the named constants in place the bare representation is likely sufficient, but the decision is deferred to first-kernel time; whichever choice is made should be consistent across both. (`Complex<u8>` is already decided: transport-only, no newtype needed because it never reaches a generic `Sample`-bounded API.)
+**Open question for first implementation**: whether `Complex<i16>` and `Complex<i8>` are used directly, or whether they're wrapped in newtypes (`Sc16`, `Sc8` or similar) for type clarity at API boundaries. The trade-off: direct use is more familiar and composes more easily with other Rust crates; newtypes catch a residual class of "I passed USRP Q1.15 samples to a function expecting BladeRF Q1.11 samples" mistakes at compile time, even when the named constants above are used at conversion time. Phase 1 uses bare `Complex<i16>` and `Complex<i8>` consistently, with named Q-format constants at the conversion boundary. (`Complex<u8>` is already decided: transport-only, no newtype needed because it never reaches a generic `Sample`-bounded API.)
 
 ### 7. Workspace versioning — synchronised across crates
 
@@ -176,7 +176,7 @@ Return `Result<T, E>` (with a honeyeater error enum) when something can fail bas
 
 This is the current consensus in the Rust scientific computing ecosystem (`ndarray`, `nalgebra`, `rustfft` all use it). It's also appropriate for honeyeater specifically because the Panop runtime runs as a long-lived process where unbounded panicking is unacceptable: data-driven errors must be recoverable.
 
-A panic policy needs to be documented per public API. The first-kernel recipe (see roadmap) will set the precedent.
+Public Phase 1 APIs document their panic and error conditions. New APIs follow the same policy and the kernel recipe in the roadmap.
 
 ### 9. Concurrency — `Send` by default, `Sync` only where trivially correct, no internal parallelism at 0.0.1
 

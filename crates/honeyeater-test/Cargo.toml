@@ -13,10 +13,9 @@ categories.workspace = true
 readme = "README.md"
 
 [dependencies]
-honeyeater-core = { path = "../honeyeater-core", version = "0.0.0" }
+honeyeater-core = { path = "../honeyeater-core", version = "0.0.1" }
 npyz = { version = "0.9", features = ["complex"] }
 num-complex = { workspace = true }
-phastft = { version = "0.4.0", features = ["complex-nums"]}
 
 [dev-dependencies]
 

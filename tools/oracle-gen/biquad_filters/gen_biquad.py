@@ -4,7 +4,7 @@ import scipy
 from scipy.signal import sosfilt
 
 # Stores generated oracle vectors into tests/vectors directory
-refVector = Path("../../crates/honeyeater-core/tests/vectors/biquad_filters")
+refVector = Path(__file__).resolve().parents[3] / "crates/honeyeater-core/tests/vectors/biquad_filters"
 refVector.mkdir(parents=True, exist_ok=True)
 (refVector / "lpf").mkdir(parents=True, exist_ok=True)
 

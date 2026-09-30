@@ -1,7 +1,8 @@
 """
-Script generates oracle test values for hanning windows from scipy.
+Script generates oracle test values for window functions from SciPy.
 
-NOTE: Ensure Python virtual environment is active, and all required imports have been installed from the requirements.txt file.
+NOTE: Generate oracle vectors using the pinned Python environment defined in
+tools/oracle-gen/requirements.txt.
 """
 
 from pathlib import Path
@@ -13,7 +14,7 @@ from scipy.signal.windows import blackmanharris
 from scipy.signal.windows import kaiser
 
 # Stores generated oracle vectors into tests/vectors directory for later use.
-refVector = Path("../../../crates/honeyeater-core/tests/vectors/windows")
+refVector = Path(__file__).resolve().parents[3] / "crates/honeyeater-core/tests/vectors/windows"
 refVector.mkdir(parents=True, exist_ok=True)
 
 # Create the specific sub-directories for different window types
@@ -36,5 +37,5 @@ for n in vecLength:
     np.save(refVector / "kaiser" / f"kaiser_{n}.npy", kaiser(n, 14, sym=True))
     np.save(refVector / "kaiser" / f"kaiser_periodic_{n}.npy", kaiser(n, 14, sym=False))
 
-print(f"wrote {2 * len(vecLength)} vectors to {refVector}")
+print(f"wrote {8 * len(vecLength)} vectors to {refVector}")
 print(f"scipy {scipy.__version__}, numpy {np.__version__}")

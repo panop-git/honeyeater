@@ -26,6 +26,10 @@ pub(crate) mod hann {
 
     /// Computes the symmetric Hann window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0` or `n >= l`.
     #[must_use]
     pub fn hann_window<T: WindowValue>(n: usize, l: usize) -> T {
         hann::<T>(n, l, true)
@@ -33,6 +37,10 @@ pub(crate) mod hann {
 
     /// Computes the periodic Hann window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0` or `n >= l`.
     #[must_use]
     pub fn hann_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
         hann::<T>(n, l, false)
@@ -74,6 +82,10 @@ pub(crate) mod hamming {
 
     /// Computes the symmetric Hamming window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0` or `n >= l`.
     #[must_use]
     pub fn hamming_window<T: WindowValue>(n: usize, l: usize) -> T {
         hamming::<T>(n, l, true)
@@ -81,6 +93,10 @@ pub(crate) mod hamming {
 
     /// Computes the periodic Hamming window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0` or `n >= l`.
     #[must_use]
     pub fn hamming_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
         hamming::<T>(n, l, false)
@@ -121,6 +137,10 @@ pub(crate) mod blackmanharris {
 
     /// Computes the symmetric Blackman-Harris window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0` or `n >= l`.
     #[must_use]
     pub fn blackmanharris_window<T: WindowValue>(n: usize, l: usize) -> T {
         blackmanharris::<T>(n, l, true)
@@ -128,6 +148,10 @@ pub(crate) mod blackmanharris {
 
     /// Computes the periodic Blackman-Harris window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0` or `n >= l`.
     #[must_use]
     pub fn blackmanharris_window_periodic<T: WindowValue>(n: usize, l: usize) -> T {
         blackmanharris::<T>(n, l, false)
@@ -171,6 +195,10 @@ pub(crate) mod kaiser {
 
     /// Computes the symmetric Kaiser window value at sample index `n` for a window of length `l`.
     /// This variant is designed for non-periodic signals only. The symmetric value is set to true.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0`, `n >= l`, or `beta` is not finite with `abs(beta) <= 700`.
     #[must_use]
     pub fn kaiser_window<T: WindowValue>(n: usize, l: usize, beta: f64) -> T {
         kaiser::<T>(n, l, beta, true)
@@ -178,6 +206,10 @@ pub(crate) mod kaiser {
 
     /// Computes the periodic Kaiser window value at sample index `n` for a window of length `l`.
     /// This variant is designed for periodic signals only. The symmetric value is set to false.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `l == 0`, `n >= l`, or `beta` is not finite with `abs(beta) <= 700`.
     #[must_use]
     pub fn kaiser_window_periodic<T: WindowValue>(n: usize, l: usize, beta: f64) -> T {
         kaiser::<T>(n, l, beta, false)
@@ -188,10 +220,13 @@ pub(crate) mod kaiser {
     fn bessel_i0(x: f64) -> f64 {
         let mut sum = 1.0;
         let mut term = 1.0;
-        // k only loops to 30 for reduced computation
-        for k in 1..=30 {
+        // Bound the domain at 700 to keep the unscaled Bessel series finite.
+        for k in 1..=1000 {
             term *= (x * x / 4.0) / (f64::from(k) * f64::from(k));
             sum += term;
+            if term <= sum * f64::EPSILON {
+                break;
+            }
         }
         sum
     }
@@ -205,6 +240,10 @@ pub(crate) mod kaiser {
     ///
     /// Integrated panic and assert macros to ensure input parameters are within valid bounds
     pub(crate) fn kaiser<T: WindowValue>(n: usize, l: usize, beta: f64, symmetric: bool) -> T {
+        assert!(
+            beta.is_finite() && beta.abs() <= 700.0,
+            "Kaiser beta must be finite with absolute value <= 700"
+        );
         // Ensures that the sample index n is less than the window length l
         assert!(
             n < l,

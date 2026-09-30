@@ -15,12 +15,17 @@
 /// # Panics
 ///
 /// Panics if `samples` is empty (D-statistic undefined) or if `alpha` is
-/// outside the supported set `{0.10, 0.05, 0.01, 0.001}`.
+/// outside the supported set `{0.10, 0.05, 0.01, 0.001}`, samples are not finite,
+/// or the CDF returns a non-finite value or a value outside `[0, 1]`.
 #[must_use]
 pub fn ks_one_sample(samples: &[f64], cdf: fn(f64) -> f64, alpha: f64) -> (f64, f64) {
     assert!(
         !samples.is_empty(),
         "ks_one_sample: samples must be non-empty",
+    );
+    assert!(
+        samples.iter().all(|x| x.is_finite()),
+        "ks_one_sample: samples must be finite"
     );
     let n = samples.len();
     #[allow(clippy::cast_precision_loss)]
@@ -36,6 +41,10 @@ pub fn ks_one_sample(samples: &[f64], cdf: fn(f64) -> f64, alpha: f64) -> (f64, 
         #[allow(clippy::cast_precision_loss)]
         let f_n_upper = (i + 1) as f64 / n_f;
         let f_target = cdf(*x);
+        assert!(
+            f_target.is_finite() && (0.0..=1.0).contains(&f_target),
+            "ks_one_sample: CDF must return a finite probability"
+        );
         let diff_lower = (f_n_lower - f_target).abs();
         let diff_upper = (f_n_upper - f_target).abs();
         d_stat = d_stat.max(diff_lower).max(diff_upper);
@@ -55,4 +64,27 @@ pub fn ks_one_sample(samples: &[f64], cdf: fn(f64) -> f64, alpha: f64) -> (f64, 
     let d_critical = c / n_f.sqrt();
 
     (d_stat, d_critical)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ks_one_sample;
+
+    #[test]
+    #[should_panic(expected = "samples must be finite")]
+    fn rejects_single_nan_sample() {
+        ks_one_sample(&[f64::NAN], |x| x, 0.01);
+    }
+
+    #[test]
+    #[should_panic(expected = "finite probability")]
+    fn rejects_nan_cdf() {
+        ks_one_sample(&[0.5], |_| f64::NAN, 0.01);
+    }
+
+    #[test]
+    #[should_panic(expected = "finite probability")]
+    fn rejects_invalid_cdf_probability() {
+        ks_one_sample(&[0.5], |_| 2.0, 0.01);
+    }
 }

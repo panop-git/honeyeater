@@ -40,4 +40,16 @@ A short tour of the ideas the rest of the docs lean on. You do not need to maste
 
 ## A note on status
 
-honeyeater is pre-v0.0.1: the foundations and test harness exist, but no DSP kernels are implemented yet. So this page describes ideas rather than runnable code — the first hands-on tutorial will arrive with the first kernel.
+Version 0.0.1 is prepared for the first kernel release. You can use windows, an RBJ low-pass filter, CRCs, float and fixed-point oscillators, SDR conversions, FIR filters, mixers, and a CCSDS Reed-Solomon encoder through the `honeyeater` crate. The API remains experimental, and FFT backend constructors are still test-only. See the [roadmap](roadmap.md#status) for the release gates.
+
+For example, this generates a complex tone at one eighth of the sample rate:
+
+```rust
+use honeyeater::{Complex, Nco};
+
+let mut oscillator = Nco::<Complex<f32>>::new(0.125);
+let mut samples = [Complex::new(0.0_f32, 0.0); 16];
+oscillator.fill(&mut samples);
+```
+
+Frequency is in cycles per sample: divide the desired frequency in hertz by your sample rate. The crate's API reference includes a complete generate-and-filter example.

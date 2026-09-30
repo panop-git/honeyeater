@@ -49,7 +49,7 @@ use num_complex::Complex;
 /// Q-format scaling (Q1.15, Q1.11, Q1.7, etc.) is **not** part of the type.
 /// `Complex<i16>` is just a struct of two `i16`s; whether full-scale ±1.0
 /// maps to ±32767 (USRP `sc16`, Q1.15) or to ±2048 (BladeRF `SC16_Q11`)
-/// depends on the surrounding code. The `q_format` module (Phase 1) provides
+/// depends on the surrounding code. The [`crate::q_format`] module provides
 /// named constants per radio that encode this.
 ///
 /// # Why no `*Assign` operators?

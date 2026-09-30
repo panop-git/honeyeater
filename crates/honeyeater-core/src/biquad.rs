@@ -32,10 +32,35 @@ pub struct Biquad<T: BiquadScalar> {
 }
 
 impl<T: BiquadScalar> Biquad<T> {
-    /// Establish coefficients for lowpass filter
+    /// Creates an RBJ low-pass filter using frequencies in hertz.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless the sample rate and Q are finite and positive, and the
+    /// cutoff is finite and strictly between zero and half the sample rate.
     #[must_use]
     pub fn lowpass(sample_rate: f64, cutoff_freq: f64, q: f64) -> Self {
-        let w0 = 2.0 * std::f64::consts::PI * cutoff_freq / sample_rate;
+        assert!(
+            sample_rate.is_finite() && sample_rate > 0.0,
+            "sample rate must be finite and positive"
+        );
+        Self::lowpass_normalized(cutoff_freq / sample_rate, q)
+    }
+
+    /// Creates an RBJ low-pass filter with cutoff in cycles per sample.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `cutoff` is finite and strictly between zero and 0.5,
+    /// `q` is finite and positive, and the derived coefficients are finite.
+    #[must_use]
+    pub fn lowpass_normalized(cutoff: f64, q: f64) -> Self {
+        assert!(
+            cutoff.is_finite() && cutoff > 0.0 && cutoff < 0.5,
+            "cutoff must lie strictly between zero and Nyquist"
+        );
+        assert!(q.is_finite() && q > 0.0, "Q must be finite and positive");
+        let w0 = std::f64::consts::TAU * cutoff;
         let alpha = w0.sin() / (2.0 * q);
         let b0 = (1.0 - w0.cos()) / 2.0;
         let b1 = 1.0 - w0.cos();
@@ -43,6 +68,10 @@ impl<T: BiquadScalar> Biquad<T> {
         let a0 = 1.0 + alpha;
         let a1 = -2.0 * w0.cos();
         let a2 = 1.0 - alpha;
+        assert!(
+            a0.is_finite() && a2.is_finite(),
+            "derived biquad coefficients must be finite"
+        );
 
         // Pre-calculate coefficients divided by a0 for efficiency
         Self {
@@ -55,6 +84,47 @@ impl<T: BiquadScalar> Biquad<T> {
             x: [T::from_f64(0.0), T::from_f64(0.0)], // x[n-1], x[n-2]
             y: [T::from_f64(0.0), T::from_f64(0.0)], // y[n-1], y[n-2]
         }
+    }
+
+    /// Returns normalized feedforward (`b`) and feedback (`a`) coefficients.
+    /// The returned `a[0]` equals one.
+    #[must_use]
+    pub fn coefficients(&self) -> ([T; 3], [T; 3]) {
+        (self.b, self.a)
+    }
+
+    /// Clears the delay state while keeping the coefficients.
+    pub fn reset(&mut self) {
+        self.x = [T::default(); 2];
+        self.y = [T::default(); 2];
+    }
+
+    /// Processes a borrowed block without allocation, preserving delay state.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the input and output lengths differ.
+    pub fn process(&mut self, input: &[T], output: &mut [T]) {
+        assert_eq!(
+            input.len(),
+            output.len(),
+            "biquad buffer lengths must match"
+        );
+        for (&sample, result) in input.iter().zip(output) {
+            *result = self.biquad_filter(sample);
+        }
+    }
+
+    /// Processes a block into a fresh output buffer, preserving delay state.
+    ///
+    /// Allocates a fresh output buffer on every call. Suitable for offline
+    /// analysis and one-shot processing. Not suitable for hard real-time
+    /// streaming pipelines where a missed buffer drops samples.
+    #[must_use]
+    pub fn process_owned(&mut self, input: &[T]) -> Vec<T> {
+        let mut output = vec![T::default(); input.len()];
+        self.process(input, &mut output);
+        output
     }
 
     /// Process one sample through the biquad filter.
@@ -76,7 +146,7 @@ impl<T: BiquadScalar> Biquad<T> {
 #[cfg(test)]
 mod biquad_tests {
     use super::*; // Imports Biquad from the parent module
-    use honeyeater_test::{assert_close, npy};
+    use honeyeater_test::{assert_close, assert_snr_db, npy};
     use std::path::PathBuf;
 
     #[test]
@@ -105,5 +175,6 @@ mod biquad_tests {
         }
 
         assert_close!(actual, expected, rtol = 1e-12, atol = 1e-15);
+        assert_snr_db!(actual, expected, min_db = 80.0);
     }
 }

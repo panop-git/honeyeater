@@ -28,14 +28,14 @@ checksum = "b97b65636e5b9ef369943878ac74335ba1c55c1cb6adbf1e2c293c624248d693"
 
 [[package]]
 name = "honeyeater"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "honeyeater-core",
 ]
 
 [[package]]
 name = "honeyeater-core"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "honeyeater-test",
  "num-complex",
@@ -45,16 +45,15 @@ dependencies = [
 
 [[package]]
 name = "honeyeater-cuda"
-version = "0.0.0"
+version = "0.0.1"
 
 [[package]]
 name = "honeyeater-test"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "honeyeater-core",
  "npyz",
  "num-complex",
- "phastft",
 ]
 
 [[package]]

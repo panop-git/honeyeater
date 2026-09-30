@@ -4,6 +4,9 @@ Generate SciPy reference vectors for Honeyeater FIR execution.
 This generator tests FIR execution only, not FIR design. The coefficients are
 fixed explicitly and scipy.signal.lfilter is used as the independent execution
 oracle.
+
+Generate oracle vectors using the pinned Python environment defined in
+tools/oracle-gen/requirements.txt.
 """
 
 from pathlib import Path

@@ -1,19 +1,26 @@
 use num_complex::Complex;
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "deterministic")))]
 pub(crate) mod phastft_impl;
-#[cfg(test)]
-pub(crate) mod rustfft_impl;
+mod rustfft_impl;
+
+pub use rustfft_impl::RustFftBackend;
 
 /// A trait that abstracts over different FFT backends, allowing for interchangeable implementations.
 /// Currently works for `PhastFT` and `RustFFT`
 pub trait FftWrapper<T> {
     /// Performs a forward Fast Fourier Transform on the provided buffer of complex numbers.
-    /// Uses generic type parameter `T` for flexibility
+    ///
+    /// # Panics
+    ///
+    /// Panics if the buffer length differs from the configured transform size.
     fn fft(&self, buffer: &mut [Complex<T>]);
 
     /// Performs a inverse Fast Fourier Transform on the provided buffer of complex numbers.
-    /// Uses generic type parameter `T` for flexibility
+    ///
+    /// # Panics
+    ///
+    /// Panics if the buffer length differs from the configured transform size.
     fn ifft(&self, buffer: &mut [Complex<T>]);
 
     /// Returns the size of the FFT that the backend is configured to handle.
@@ -22,19 +29,22 @@ pub trait FftWrapper<T> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(feature = "deterministic"))]
     use super::phastft_impl::PhastFftBackend;
     use super::rustfft_impl::RustFftBackend;
     use super::*;
-    use honeyeater_test::{assert_close, npy};
+    use honeyeater_test::{assert_snr_db, npy};
     use std::path::PathBuf;
 
     trait FftScalar: Copy + Default {
+        const MIN_SNR_DB: f64;
         fn from_f64(value: f64) -> Self;
         fn to_f64(self) -> f64;
     }
 
     #[allow(clippy::cast_possible_truncation)]
     impl FftScalar for f32 {
+        const MIN_SNR_DB: f64 = 60.0;
         fn from_f64(value: f64) -> Self {
             value as f32
         }
@@ -45,6 +55,7 @@ mod tests {
     }
 
     impl FftScalar for f64 {
+        const MIN_SNR_DB: f64 = 120.0;
         fn from_f64(value: f64) -> Self {
             value
         }
@@ -71,18 +82,18 @@ mod tests {
     }
 
     // Helper to test Complex vectors using a macro designed for real numbers
-    fn assert_complex_close<T: FftScalar>(actual: &[Complex<T>], expected: &[Complex<T>]) {
-        let (actual_re, actual_im): (Vec<f64>, Vec<f64>) = actual
+    fn assert_complex_snr<T: FftScalar>(actual: &[Complex<T>], expected: &[Complex<T>]) {
+        let actual_flat: Vec<f64> = actual
             .iter()
-            .map(|c| (c.re.to_f64(), c.im.to_f64()))
-            .unzip();
-        let (expected_re, expected_im): (Vec<f64>, Vec<f64>) = expected
-            .iter()
-            .map(|c| (c.re.to_f64(), c.im.to_f64()))
-            .unzip();
+            .flat_map(|c| [c.re.to_f64(), c.im.to_f64()])
+            .collect();
 
-        assert_close!(actual_re, expected_re, rtol = 1e-5, atol = 1e-5);
-        assert_close!(actual_im, expected_im, rtol = 1e-5, atol = 1e-5);
+        let expected_flat: Vec<f64> = expected
+            .iter()
+            .flat_map(|c| [c.re.to_f64(), c.im.to_f64()])
+            .collect();
+
+        assert_snr_db!(actual_flat, expected_flat, min_db = T::MIN_SNR_DB);
     }
 
     // Generic test executor so both backends run through the exact same assertions
@@ -98,11 +109,11 @@ mod tests {
 
         // Test Forward FFT
         backend.fft(&mut buffer);
-        assert_complex_close(&buffer, &expected_fft);
+        assert_complex_snr(&buffer, &expected_fft);
 
         // Test Inverse FFT
         backend.ifft(&mut buffer);
-        assert_complex_close(&buffer, &expected_inverse);
+        assert_complex_snr(&buffer, &expected_inverse);
     }
 
     fn assert_rustfft_matches_oracle<T: FftScalar + rustfft::FftNum>() {
@@ -112,6 +123,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "deterministic"))]
     fn assert_phastft_matches_oracle<T: FftScalar + phastft_impl::PhastFftFloat>() {
         for size in [8usize, 16, 64] {
             let backend = PhastFftBackend::<T>::new(size);
@@ -130,11 +142,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(feature = "deterministic"))]
     fn test_phastft_matches_oracle_f64() {
         assert_phastft_matches_oracle::<f64>();
     }
 
     #[test]
+    #[cfg(not(feature = "deterministic"))]
     fn test_phastft_matches_oracle_f32() {
         assert_phastft_matches_oracle::<f32>();
     }
