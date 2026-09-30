@@ -118,6 +118,19 @@ macro_rules! impl_float_fir {
             pub fn process(&mut self, input: &[$type], output: &mut [$type]) {
                 process_float_block(self, input, output);
             }
+
+            /// Processes a block into a newly allocated output vector while
+            /// preserving filter state.
+            ///
+            /// Allocates a fresh output buffer on every call. Suitable for offline
+            /// analysis and one-shot processing. Not suitable for hard real-time
+            /// streaming pipelines where a missed buffer drops samples.
+            #[must_use]
+            pub fn process_owned(&mut self, input: &[$type]) -> Vec<$type> {
+                let mut output = vec![<$type as Sample>::ZERO; input.len()];
+                self.process(input, &mut output);
+                output
+            }
         }
     };
 }
@@ -236,6 +249,22 @@ impl FirFilter<Complex<i16>> {
             *output_sample = self.process_sample(input_sample);
         }
     }
+
+    /// Processes a fixed-point block into a newly allocated output vector while
+    /// preserving filter state.
+    ///
+    /// Allocates a fresh output buffer on every call. Suitable for offline
+    /// analysis and one-shot processing. Not suitable for hard real-time
+    /// streaming pipelines where a missed buffer drops samples.
+    #[must_use]
+    pub fn process_owned(
+        &mut self,
+        input: &[Complex<i16>],
+    ) -> Vec<Complex<i16>> {
+        let mut output = vec![Complex::new(0_i16, 0_i16); input.len()];
+        self.process(input, &mut output);
+        output
+    }
 }
 
 impl FirFilter<Complex<i8>> {
@@ -312,6 +341,22 @@ impl FirFilter<Complex<i8>> {
         for (&input_sample, output_sample) in input.iter().zip(output.iter_mut()) {
             *output_sample = self.process_sample(input_sample);
         }
+    }
+
+    /// Processes a fixed-point block into a newly allocated output vector while
+    /// preserving filter state.
+    ///
+    /// Allocates a fresh output buffer on every call. Suitable for offline
+    /// analysis and one-shot processing. Not suitable for hard real-time
+    /// streaming pipelines where a missed buffer drops samples.
+    #[must_use]
+    pub fn process_owned(
+        &mut self,
+        input: &[Complex<i8>],
+    ) -> Vec<Complex<i8>> {
+        let mut output = vec![Complex::new(0_i8, 0_i8); input.len()];
+        self.process(input, &mut output);
+        output
     }
 }
 

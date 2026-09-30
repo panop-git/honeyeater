@@ -7,9 +7,13 @@ A Rust library of digital signal processing primitives for radio-frequency and e
 
 Version 0.0.1 prepared for the first kernel release. The API remains experimental. Stewarded by [Panop](https://www.panop.ai), the spectrum security company.
 
-The working tree implements Hann, Hamming, Blackman-Harris and Kaiser windows, an RBJ low-pass biquad, CRC-32C and CRC-16/ARC, NCO / DDS, SDR sample conversions and radio Q-format constants, FIR execution, complex multiply and mixers, and a CCSDS Reed-Solomon (255,223) encoder. NCO, FIR, and mixer primitives support float and fixed-point samples. These APIs are available through the `honeyeater` facade.
+Phase 0 scaffolding is complete. Phase 1 steps 1–10 are implemented. The RustFFT
+backend is public through `RustFftBackend`; PhastFT remains an internal
+cross-validation backend. Fixed-point magnitude/power calculation required by
+architecture decision 6 is also implemented.
 
-FFT backends are validated against SciPy, but their constructors remain test-only; the facade currently exposes the `FftWrapper` contract. See the [roadmap](docs/roadmap.md) for the release gates. This change prepares source version 0.0.1; it does not publish it to crates.io.
+Publication requires the complete stable/MSRV/nightly cross-platform CI matrix
+to pass and the release packages to be verified.
 
 For runnable examples, see the facade's [crate documentation](crates/honeyeater/src/lib.rs).
 

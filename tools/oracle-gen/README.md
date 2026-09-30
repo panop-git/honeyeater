@@ -32,6 +32,7 @@ All commands below run from the repository root. Each script resolves its output
 | Floating-point FIR execution | `scipy.signal.lfilter` with explicit coefficients | `python tools/oracle-gen/fir/gen_fir.py` |
 | Float and fixed-point complex multiply | NumPy arithmetic and widened integer model | `python tools/oracle-gen/mixer/gen_mixer.py` |
 | CCSDS RS(255,223) complete codewords | Phil Karn's libfec dual-basis encoder | `python tools/oracle-gen/rs_ccsds/gen_rs_ccsds.py` |
+| Complex magnitude / power | NumPy float arithmetic + Python integer arithmetic | `python tools/oracle-gen/magnitude/gen_magnitude.py` |
 
 The RS generator pins `quiet/libfec` commit `9750ca0a6d0a786b506e44692776b541f90daa91` in its source. It requires a POSIX build environment with `git`, `cc`, and `make`, plus network access to clone the pinned snapshot. It builds libfec in a temporary directory and writes three 255-byte systematic codewords. It does not require NumPy or SciPy. The library tests also check the CCSDS Annex F basis-transformation examples; those are distinct from the libfec codeword fixtures.
 

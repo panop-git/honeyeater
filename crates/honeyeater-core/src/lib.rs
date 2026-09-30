@@ -11,11 +11,10 @@
 //!   path independent of `rustfft`'s version pinning.
 //!
 //! Version 0.0.1 includes the window family, RBJ low-pass [`Biquad`],
-//! [`FirFilter`], [`Nco`], float and fixed-point mixer primitives, [`q_format`]
-//! and SDR boundary helpers, CRCs, and the CCSDS RS(255,223) encoder.
-//! The API is experimental. [`FftWrapper`] defines the FFT backend contract;
-//! the `PhastFT` and `RustFFT` implementations currently exist only in tests.
-//! See `docs/roadmap.md` for validation status and remaining release gates.
+//! [`FirFilter`], [`Nco`], float and fixed-point mixer and magnitude/power
+//! primitives, [`q_format`] and SDR boundary helpers, CRCs, the public
+//! [`RustFftBackend`], and the CCSDS RS(255,223) encoder.
+//! The API remains experimental.
 
 #![forbid(unsafe_code)]
 
@@ -35,9 +34,13 @@ mod sample;
 mod sdr_boundary;
 mod windows;
 
+// Brings magnitude functions into current scope
 pub use magnitude::{
-    MagnitudeSample, complex_magnitude, complex_magnitudes, complex_power, complex_powers,
+    MagnitudeSample, complex_magnitude, complex_magnitudes,
+    complex_magnitudes_owned, complex_power, complex_powers,
+    complex_powers_owned,
 };
+
 pub use sample::Sample;
 
 // Brings window functions into current scope from their sub-modules

@@ -9,7 +9,7 @@
 
 # Match MSRV so clippy doesn't suggest features unavailable to our oldest
 # supported compiler. Keep in sync with `rust-version` in Cargo.toml.
-msrv = "1.91"
+msrv = "1.96"
 
 # Pre-0.1.0: we have no stable public API yet, so don't warn about changes
 # that would be breaking. Revisit when we cut 0.1.0.

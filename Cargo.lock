@@ -51,7 +51,6 @@ version = "0.0.1"
 name = "honeyeater-test"
 version = "0.0.1"
 dependencies = [
- "honeyeater-core",
  "npyz",
  "num-complex",
 ]

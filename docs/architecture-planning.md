@@ -56,7 +56,13 @@ The hot path uses two complementary forms:
 - **Borrowed output** — `fn process(input: &[T], output: &mut [T])`. Caller pre-allocates both buffers. Zero allocations per call. Primary form for stateless operations (windows, gain adjustment, fixed-point↔float conversion).
 - **Stateful processors** — objects constructed once, holding internal state, called repeatedly. Primary form for anything carrying state between calls (filters, NCOs, PLLs, demodulators, AGCs, equalisers).
 
-An **owned-output** form (`fn process(input) -> Vec<T>`) is offered as a thin convenience layer for offline analysis, filter design, one-shot processing. It is a three-line wrapper on top of the borrowed-output primitive, not a separate implementation.
+An **owned-output** form (`fn process(input) -> Vec<T>`) may be offered as a
+thin convenience layer where it materially improves one-shot or offline use.
+It must wrap the borrowed-output implementation rather than duplicate kernel
+logic. Stateful processors such as filters should generally provide this
+convenience form. Low-level boundary-conversion helpers may remain
+borrowed-output-only where adding an owned variant would substantially multiply
+the API surface without adding new functionality.
 
 Documentation for the owned-output form must include words to this effect: *"Allocates a fresh output buffer on every call. Suitable for offline analysis, filter design, one-shot processing, and any use where occasional unpredictable delays are acceptable. Not suitable for hard real-time streaming pipelines (e.g. live SDR receive chains where a missed buffer drops samples)."*
 
