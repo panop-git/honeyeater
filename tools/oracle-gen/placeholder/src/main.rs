@@ -1,10 +1,9 @@
-//! Placeholder so the `oracle-gen` workspace builds before any real oracle
-//! generator exists. Will be removed when the first real generator (e.g. a
-//! libfec wrapper producing CCSDS Reed-Solomon test vectors) lands.
+//! Bootstrap target for future Rust oracle runners.
+//! Phase 1 fixture generation is implemented by the sibling Python scripts.
 
 fn main() {
     println!(
-        "oracle-gen placeholder; no oracle generators exist yet. \
-         See ../README.md for the role of this workspace."
+        "oracle-gen bootstrap; use the Python generators documented in \
+         tools/oracle-gen/README.md to regenerate Phase 1 fixtures."
     );
 }

@@ -1,6 +1,6 @@
 # Contributing to honeyeater
 
-honeyeater is pre-v0.0.1. Expect APIs, crate layout, and this document to change without notice until the milestone in `docs/roadmap.md` (CCSDS Reed-Solomon (255, 223) encoder, bit-exact) cuts 0.0.1.
+honeyeater has prepared source version 0.0.1 with the Phase 1 primitives and CCSDS Reed-Solomon (255,223) encoder. The API remains experimental before 0.1.0. See `docs/roadmap.md` for the remaining release gates; publication is a separate step.
 
 ## Read these first
 

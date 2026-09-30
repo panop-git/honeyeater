@@ -1,7 +1,7 @@
 //! Cross-validation helpers and tolerance assertion macros for testing DSP
 //! code against named oracles. honeyeater uses them for its own kernels; they
 //! are published so downstream crates can hold their implementations to the
-//! same tolerance vocabulary. Pre-0.0.1: the API may change between releases.
+//! same tolerance vocabulary. At 0.0.1, the API remains experimental.
 //!
 //! ## The seven assertion macros
 //!
@@ -33,9 +33,10 @@
 //! - [`scipy::run`] — call out to a Python interpreter with scipy installed
 //!   for live cross-validation when committing a vector is overkill.
 //!
-//! Both are stubs at Phase 0 (signatures defined, bodies deferred to first
-//! use). They are documented here so the test-writing recipe is in one
-//! place when Phase 1 starts.
+//! Both helpers are implemented. Phase 1 kernel tests read committed oracle
+//! fixtures; the Python subprocess helper is available for development-time
+//! checks. It requires Python and returns errors for process or output failures;
+//! it does not enforce oracle pins or a timeout.
 
 #![forbid(unsafe_code)]
 

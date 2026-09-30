@@ -13,8 +13,11 @@ categories.workspace = true
 readme = "README.md"
 
 [dependencies]
-honeyeater-core = { path = "../honeyeater-core", version = "0.0.0" }
+npyz = { version = "0.9", features = ["complex"] }
 num-complex = { workspace = true }
+
+[dev-dependencies]
+
 
 [lints]
 workspace = true

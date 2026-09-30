@@ -1,6 +1,6 @@
 [package]
 name = "honeyeater-core"
-description = "Core sample types, signal traits, and tolerance vocabulary for the honeyeater DSP library."
+description = "Core sample types and DSP primitives for radio-frequency and electrical signals, from the honeyeater project."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -14,7 +14,15 @@ readme = "README.md"
 
 [dependencies]
 num-complex = { workspace = true }
-phastft = "0.4.0"
+rustfft = "6.4.1"
+
+[features]
+# Scalar, sequential FFT planning without ISA-dependent SIMD/FMA dispatch.
+deterministic = []
+
+[dev-dependencies]
+phastft = { version = "0.4.0", features = ["complex-nums"] }
+honeyeater-test = { path = "../honeyeater-test", version = "0.0.1" }
 
 [lints]
 workspace = true

@@ -5,9 +5,17 @@
 
 A Rust library of digital signal processing primitives for radio-frequency and electrical signals. Filters, transforms, modulation, forward error correction, channel models. Targets CPU-side processing of sample streams from radios, digitisers, and simulators.
 
-Pre-v0.0.1. Stewarded by [Panop](https://www.panop.ai), the spectrum security company.
+Version 0.0.1 prepared for the first kernel release. The API remains experimental. Stewarded by [Panop](https://www.panop.ai), the spectrum security company.
 
-The crate is published on crates.io as [`honeyeater`](https://crates.io/crates/honeyeater); at this pre-release stage it is a name reservation with no kernels implemented yet.
+Phase 0 scaffolding is complete. Phase 1 steps 1–10 are implemented. The RustFFT
+backend is public through `RustFftBackend`; PhastFT remains an internal
+cross-validation backend. Fixed-point magnitude/power calculation required by
+architecture decision 6 is also implemented.
+
+Publication requires the complete stable/MSRV/nightly cross-platform CI matrix
+to pass and the release packages to be verified.
+
+For runnable examples, see the facade's [crate documentation](crates/honeyeater/src/lib.rs).
 
 ## Documentation
 

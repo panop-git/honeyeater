@@ -1,0 +1,4 @@
+# Canonical pinned environment for all NumPy/SciPy oracle generators.
+# Install from the repository root: python -m pip install -r tools/oracle-gen/requirements.txt
+numpy==2.5.1
+scipy==1.18.0

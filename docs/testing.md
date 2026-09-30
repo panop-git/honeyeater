@@ -26,15 +26,15 @@ honeyeater commits to a small, fixed vocabulary of [tolerance](glossary.md#toler
 
 These are the only tolerance predicates honeyeater uses across the codebase. Percentage tolerance is **not** in the set — it breaks on zero crossings and is insensitive to dynamic range. Ad-hoc thresholds invented per-test are discouraged.
 
-The harness lives in the dev-only `honeyeater-test` crate. It is not published; you do not depend on it in production code. The published `honeyeater` crate has no test dependencies.
+The harness lives in `honeyeater-test`, published alongside the workspace for use as a dev-dependency. Signal-processing applications do not need it in their production dependency graph; the `honeyeater` facade depends only on `honeyeater-core`.
 
-The seven macros are implemented and tested. The `.npy` reference-vector loader (`honeyeater_test::npy`) and the scipy-subprocess runner (`honeyeater_test::scipy`) are currently signature-only stubs.
+The seven macros, `.npy` reference-vector loader (`honeyeater_test::npy`), and Python subprocess runner (`honeyeater_test::scipy`) are implemented. Phase 1 kernel tests read committed fixtures. The runner requires Python, returns `Result<String, Box<dyn Error>>`, and does not enforce package pins or a timeout. Fixture regeneration uses the canonical NumPy/SciPy pins in `tools/oracle-gen/requirements.txt`.
 
 ### Importing the harness
 
 ```toml
 [dev-dependencies]
-honeyeater-test = { path = "path/to/honeyeater/crates/honeyeater-test" }
+honeyeater-test = { path = "path/to/honeyeater/crates/honeyeater-test", version = "0.0.1" }
 ```
 
 ---
@@ -404,17 +404,18 @@ Loader for `.npy` reference-vector files committed under `tests/vectors/`.
 
 ```rust
 use honeyeater_test::npy;
+use honeyeater::Complex;
 use std::path::Path;
 
-let f32_data    : Vec<f32>             = npy::load_f32(Path::new("tests/vectors/x.npy"));
-let f64_data    : Vec<f64>             = npy::load_f64(Path::new("tests/vectors/x.npy"));
-let cf32_data   : Vec<Complex<f32>>    = npy::load_complex_f32(Path::new("tests/vectors/x.npy"));
-let cf64_data   : Vec<Complex<f64>>    = npy::load_complex_f64(Path::new("tests/vectors/x.npy"));
+let f32_data    : Vec<f32>             = npy::load_f32(Path::new("tests/vectors/x.npy")).expect("valid oracle vector");
+let f64_data    : Vec<f64>             = npy::load_f64(Path::new("tests/vectors/x.npy")).expect("valid oracle vector");
+let cf32_data   : Vec<Complex<f32>>    = npy::load_complex_f32(Path::new("tests/vectors/x.npy")).expect("valid oracle vector");
+let cf64_data   : Vec<Complex<f64>>    = npy::load_complex_f64(Path::new("tests/vectors/x.npy")).expect("valid oracle vector");
 ```
 
-numpy's complex format stores interleaved real / imaginary pairs, which is the same memory layout as a slice of `num_complex::Complex<T>`, so the loader returns the data in honeyeater's preferred type without a caller-side cast.
+The loader deserialises NumPy complex arrays into `num_complex::Complex<T>` values through `npyz`; callers do not need to cast the bytes.
 
-The loader supports 1-D arrays only. It refuses `.npy` files saved with `allow_pickle = True` as defence in depth.
+The float and complex-float loaders require 1-D arrays. The integer-complex loaders (`load_complex_i8`, `load_complex_i16`, `load_complex_i32`) require `[N, 2]` arrays containing real/imaginary pairs. Loaders check shape and dtype and reject pickled/object arrays.
 
 Reference vectors are committed to the repository as opaque binary blobs. They are not regenerated in CI. The expectation is that whoever lands a kernel commits the reference vectors alongside it, with attribution to the oracle in a sibling text file.
 
