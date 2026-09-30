@@ -25,6 +25,10 @@ mod mixer;
 mod nco;
 mod sample;
 mod windows;
+mod fir;
+mod rs_ccsds;
+pub mod q_format;
+mod sdr_boundary;
 
 pub use sample::Sample;
 
@@ -52,3 +56,33 @@ pub use mixer::{
 
 // Brings NCO / DDS processor into current scope
 pub use nco::Nco;
+
+// Brings FIR filter processor into current scope
+pub use fir::FirFilter;
+
+// Brings CCSDS Reed-Solomon encoder into current scope
+pub use rs_ccsds::{
+    CCSDS_RS_CODEWORD_SYMBOLS,
+    CCSDS_RS_DATA_SYMBOLS,
+    CCSDS_RS_PARITY_SYMBOLS,
+    ccsds_rs_255_223_encode,
+    ccsds_rs_255_223_parity,
+};
+
+pub use q_format::QFormat;
+
+pub use sdr_boundary::{
+    complex_f32_to_i8,
+    complex_f32_to_i16,
+    complex_f64_to_i8,
+    complex_f64_to_i16,
+    complex_i8_to_f32,
+    complex_i8_to_f64,
+    complex_i16_to_f32,
+    complex_i16_to_f64,
+    deinterleave_complex,
+    interleave_complex,
+    rtl_sdr_i8_to_u8,
+    rtl_sdr_u8_to_f32,
+    rtl_sdr_u8_to_i8,
+};
