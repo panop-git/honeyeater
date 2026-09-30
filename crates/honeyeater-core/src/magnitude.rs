@@ -19,44 +19,44 @@ use num_complex::Complex;
 /// scalar type. Fixed-point integer component types return `u32` so that the
 /// full `Complex<i16>` power range is representable without overflow.
 pub trait MagnitudeSample: Sample {
-    /// Scalar output type produced by magnitude and power calculations.
-    type Output: Copy + Default;
+    /// Scalar type produced by magnitude and power calculations.
+    type Magnitude: Copy + Default;
 
     /// Computes squared complex magnitude.
-    fn power(sample: Complex<Self>) -> Self::Output;
+    fn power(sample: Complex<Self>) -> Self::Magnitude;
 
     /// Computes complex magnitude.
-    fn magnitude(sample: Complex<Self>) -> Self::Output;
+    fn magnitude(sample: Complex<Self>) -> Self::Magnitude;
 }
 
 impl MagnitudeSample for f32 {
-    type Output = f32;
+    type Magnitude = f32;
 
-    fn power(sample: Complex<Self>) -> Self::Output {
+    fn power(sample: Complex<Self>) -> Self::Magnitude {
         sample.re * sample.re + sample.im * sample.im
     }
 
-    fn magnitude(sample: Complex<Self>) -> Self::Output {
+    fn magnitude(sample: Complex<Self>) -> Self::Magnitude {
         Self::power(sample).sqrt()
     }
 }
 
 impl MagnitudeSample for f64 {
-    type Output = f64;
+    type Magnitude = f64;
 
-    fn power(sample: Complex<Self>) -> Self::Output {
+    fn power(sample: Complex<Self>) -> Self::Magnitude {
         sample.re * sample.re + sample.im * sample.im
     }
 
-    fn magnitude(sample: Complex<Self>) -> Self::Output {
+    fn magnitude(sample: Complex<Self>) -> Self::Magnitude {
         Self::power(sample).sqrt()
     }
 }
 
 impl MagnitudeSample for i16 {
-    type Output = u32;
+    type Magnitude = u32;
 
-    fn power(sample: Complex<Self>) -> Self::Output {
+    fn power(sample: Complex<Self>) -> Self::Magnitude {
         let re = i64::from(sample.re);
         let im = i64::from(sample.im);
         let power = re * re + im * im;
@@ -64,15 +64,15 @@ impl MagnitudeSample for i16 {
         u32::try_from(power).expect("Complex<i16> power must fit in u32")
     }
 
-    fn magnitude(sample: Complex<Self>) -> Self::Output {
+    fn magnitude(sample: Complex<Self>) -> Self::Magnitude {
         Self::power(sample).isqrt()
     }
 }
 
 impl MagnitudeSample for i8 {
-    type Output = u32;
+    type Magnitude = u32;
 
-    fn power(sample: Complex<Self>) -> Self::Output {
+    fn power(sample: Complex<Self>) -> Self::Magnitude {
         let re = i32::from(sample.re);
         let im = i32::from(sample.im);
         let power = re * re + im * im;
@@ -80,7 +80,7 @@ impl MagnitudeSample for i8 {
         u32::try_from(power).expect("Complex<i8> power must fit in u32")
     }
 
-    fn magnitude(sample: Complex<Self>) -> Self::Output {
+    fn magnitude(sample: Complex<Self>) -> Self::Magnitude {
         Self::power(sample).isqrt()
     }
 }
@@ -91,7 +91,7 @@ impl MagnitudeSample for i8 {
 /// samples the calculation is widened before multiplication and returned as an
 /// unsigned raw count.
 #[must_use]
-pub fn complex_power<T: MagnitudeSample>(sample: Complex<T>) -> T::Output {
+pub fn complex_power<T: MagnitudeSample>(sample: Complex<T>) -> T::Magnitude {
     T::power(sample)
 }
 
@@ -100,7 +100,7 @@ pub fn complex_power<T: MagnitudeSample>(sample: Complex<T>) -> T::Output {
 /// Fixed-point integer magnitude uses exact integer square root and therefore
 /// rounds downward to the nearest integer count.
 #[must_use]
-pub fn complex_magnitude<T: MagnitudeSample>(sample: Complex<T>) -> T::Output {
+pub fn complex_magnitude<T: MagnitudeSample>(sample: Complex<T>) -> T::Magnitude {
     T::magnitude(sample)
 }
 
@@ -111,10 +111,7 @@ pub fn complex_magnitude<T: MagnitudeSample>(sample: Complex<T>) -> T::Output {
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn complex_powers<T: MagnitudeSample>(
-    input: &[Complex<T>],
-    output: &mut [T::Output],
-) {
+pub fn complex_powers<T: MagnitudeSample>(input: &[Complex<T>], output: &mut [T::Magnitude]) {
     assert_eq!(
         input.len(),
         output.len(),
@@ -133,10 +130,7 @@ pub fn complex_powers<T: MagnitudeSample>(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn complex_magnitudes<T: MagnitudeSample>(
-    input: &[Complex<T>],
-    output: &mut [T::Output],
-) {
+pub fn complex_magnitudes<T: MagnitudeSample>(input: &[Complex<T>], output: &mut [T::Magnitude]) {
     assert_eq!(
         input.len(),
         output.len(),
@@ -154,10 +148,8 @@ pub fn complex_magnitudes<T: MagnitudeSample>(
 /// analysis and one-shot processing. Not suitable for hard real-time
 /// streaming pipelines where a missed buffer drops samples.
 #[must_use]
-pub fn complex_powers_owned<T: MagnitudeSample>(
-    input: &[Complex<T>],
-) -> Vec<T::Output> {
-    let mut output = vec![T::Output::default(); input.len()];
+pub fn complex_powers_owned<T: MagnitudeSample>(input: &[Complex<T>]) -> Vec<T::Magnitude> {
+    let mut output = vec![T::Magnitude::default(); input.len()];
     complex_powers(input, &mut output);
     output
 }
@@ -168,10 +160,8 @@ pub fn complex_powers_owned<T: MagnitudeSample>(
 /// analysis and one-shot processing. Not suitable for hard real-time
 /// streaming pipelines where a missed buffer drops samples.
 #[must_use]
-pub fn complex_magnitudes_owned<T: MagnitudeSample>(
-    input: &[Complex<T>],
-) -> Vec<T::Output> {
-    let mut output = vec![T::Output::default(); input.len()];
+pub fn complex_magnitudes_owned<T: MagnitudeSample>(input: &[Complex<T>]) -> Vec<T::Magnitude> {
+    let mut output = vec![T::Magnitude::default(); input.len()];
     complex_magnitudes(input, &mut output);
     output
 }
@@ -195,12 +185,11 @@ mod tests {
         let input = npy::load_complex_f64(&vector_path("input_f64.npy"))
             .expect("failed to load f64 magnitude input");
 
-        let expected_power = npy::load_f64(&vector_path("power_f64.npy"))
-            .expect("failed to load f64 power oracle");
+        let expected_power =
+            npy::load_f64(&vector_path("power_f64.npy")).expect("failed to load f64 power oracle");
 
-        let expected_magnitude =
-            npy::load_f64(&vector_path("magnitude_f64.npy"))
-                .expect("failed to load f64 magnitude oracle");
+        let expected_magnitude = npy::load_f64(&vector_path("magnitude_f64.npy"))
+            .expect("failed to load f64 magnitude oracle");
 
         let mut actual_power = vec![0.0_f64; input.len()];
         let mut actual_magnitude = vec![0.0_f64; input.len()];
@@ -208,12 +197,7 @@ mod tests {
         complex_powers(&input, &mut actual_power);
         complex_magnitudes(&input, &mut actual_magnitude);
 
-        assert_close!(
-            actual_power,
-            expected_power,
-            rtol = 1e-12,
-            atol = 1e-15
-        );
+        assert_close!(actual_power, expected_power, rtol = 1e-12, atol = 1e-15);
 
         assert_close!(
             actual_magnitude,
@@ -228,12 +212,11 @@ mod tests {
         let input = npy::load_complex_f32(&vector_path("input_f32.npy"))
             .expect("failed to load f32 magnitude input");
 
-        let expected_power = npy::load_f32(&vector_path("power_f32.npy"))
-            .expect("failed to load f32 power oracle");
+        let expected_power =
+            npy::load_f32(&vector_path("power_f32.npy")).expect("failed to load f32 power oracle");
 
-        let expected_magnitude =
-            npy::load_f32(&vector_path("magnitude_f32.npy"))
-                .expect("failed to load f32 magnitude oracle");
+        let expected_magnitude = npy::load_f32(&vector_path("magnitude_f32.npy"))
+            .expect("failed to load f32 magnitude oracle");
 
         let mut actual_power = vec![0.0_f32; input.len()];
         let mut actual_magnitude = vec![0.0_f32; input.len()];
@@ -241,12 +224,7 @@ mod tests {
         complex_powers(&input, &mut actual_power);
         complex_magnitudes(&input, &mut actual_magnitude);
 
-        assert_close!(
-            actual_power,
-            expected_power,
-            rtol = 1e-6,
-            atol = 1e-7
-        );
+        assert_close!(actual_power, expected_power, rtol = 1e-6, atol = 1e-7);
 
         assert_close!(
             actual_magnitude,
@@ -261,12 +239,11 @@ mod tests {
         let input = npy::load_complex_i16(&vector_path("input_i16.npy"))
             .expect("failed to load i16 magnitude input");
 
-        let expected_power = npy::load_u32(&vector_path("power_i16.npy"))
-            .expect("failed to load i16 power oracle");
+        let expected_power =
+            npy::load_u32(&vector_path("power_i16.npy")).expect("failed to load i16 power oracle");
 
-        let expected_magnitude =
-            npy::load_u32(&vector_path("magnitude_i16.npy"))
-                .expect("failed to load i16 magnitude oracle");
+        let expected_magnitude = npy::load_u32(&vector_path("magnitude_i16.npy"))
+            .expect("failed to load i16 magnitude oracle");
 
         let mut actual_power = vec![0_u32; input.len()];
         let mut actual_magnitude = vec![0_u32; input.len()];
@@ -283,12 +260,11 @@ mod tests {
         let input = npy::load_complex_i8(&vector_path("input_i8.npy"))
             .expect("failed to load i8 magnitude input");
 
-        let expected_power = npy::load_u32(&vector_path("power_i8.npy"))
-            .expect("failed to load i8 power oracle");
+        let expected_power =
+            npy::load_u32(&vector_path("power_i8.npy")).expect("failed to load i8 power oracle");
 
-        let expected_magnitude =
-            npy::load_u32(&vector_path("magnitude_i8.npy"))
-                .expect("failed to load i8 magnitude oracle");
+        let expected_magnitude = npy::load_u32(&vector_path("magnitude_i8.npy"))
+            .expect("failed to load i8 magnitude oracle");
 
         let mut actual_power = vec![0_u32; input.len()];
         let mut actual_magnitude = vec![0_u32; input.len()];
@@ -318,10 +294,7 @@ mod tests {
 
     #[test]
     fn test_owned_and_borrowed_forms_match() {
-        let input = [
-            Complex::new(3_i16, 4_i16),
-            Complex::new(-5_i16, 12_i16),
-        ];
+        let input = [Complex::new(3_i16, 4_i16), Complex::new(-5_i16, 12_i16)];
 
         let mut borrowed = [0_u32; 2];
         complex_magnitudes(&input, &mut borrowed);

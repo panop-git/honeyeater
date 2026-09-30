@@ -36,9 +36,8 @@ mod windows;
 
 // Brings magnitude functions into current scope
 pub use magnitude::{
-    MagnitudeSample, complex_magnitude, complex_magnitudes,
-    complex_magnitudes_owned, complex_power, complex_powers,
-    complex_powers_owned,
+    MagnitudeSample, complex_magnitude, complex_magnitudes, complex_magnitudes_owned,
+    complex_power, complex_powers, complex_powers_owned,
 };
 
 pub use sample::Sample;

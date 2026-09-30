@@ -257,10 +257,7 @@ impl FirFilter<Complex<i16>> {
     /// analysis and one-shot processing. Not suitable for hard real-time
     /// streaming pipelines where a missed buffer drops samples.
     #[must_use]
-    pub fn process_owned(
-        &mut self,
-        input: &[Complex<i16>],
-    ) -> Vec<Complex<i16>> {
+    pub fn process_owned(&mut self, input: &[Complex<i16>]) -> Vec<Complex<i16>> {
         let mut output = vec![Complex::new(0_i16, 0_i16); input.len()];
         self.process(input, &mut output);
         output
@@ -350,10 +347,7 @@ impl FirFilter<Complex<i8>> {
     /// analysis and one-shot processing. Not suitable for hard real-time
     /// streaming pipelines where a missed buffer drops samples.
     #[must_use]
-    pub fn process_owned(
-        &mut self,
-        input: &[Complex<i8>],
-    ) -> Vec<Complex<i8>> {
+    pub fn process_owned(&mut self, input: &[Complex<i8>]) -> Vec<Complex<i8>> {
         let mut output = vec![Complex::new(0_i8, 0_i8); input.len()];
         self.process(input, &mut output);
         output

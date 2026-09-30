@@ -73,18 +73,18 @@ mod tests {
     #[test]
     #[should_panic(expected = "samples must be finite")]
     fn rejects_single_nan_sample() {
-        ks_one_sample(&[f64::NAN], |x| x, 0.01);
+        let _ = ks_one_sample(&[f64::NAN], |x| x, 0.01);
     }
 
     #[test]
     #[should_panic(expected = "finite probability")]
     fn rejects_nan_cdf() {
-        ks_one_sample(&[0.5], |_| f64::NAN, 0.01);
+        let _ = ks_one_sample(&[0.5], |_| f64::NAN, 0.01);
     }
 
     #[test]
     #[should_panic(expected = "finite probability")]
     fn rejects_invalid_cdf_probability() {
-        ks_one_sample(&[0.5], |_| 2.0, 0.01);
+        let _ = ks_one_sample(&[0.5], |_| 2.0, 0.01);
     }
 }
