@@ -119,7 +119,7 @@ fn gf_multiply(mut lhs: u8, mut rhs: u8) -> u8 {
 /// Applies one of the CCSDS eight-bit basis transformation matrices.
 ///
 /// `rows` contains the matrix rows packed MSB-first into bytes.
-fn transform_basis(value: u8, rows: &[u8; 8]) -> u8 {
+fn transform_basis(value: u8, rows: [u8; 8]) -> u8 {
     let mut transformed = 0_u8;
 
     for (row_index, &row) in rows.iter().enumerate() {
@@ -135,19 +135,17 @@ fn transform_basis(value: u8, rows: &[u8; 8]) -> u8 {
 
 /// Converts a CCSDS dual-basis symbol into conventional polynomial basis.
 fn dual_to_conventional(value: u8) -> u8 {
-    transform_basis(value, &DUAL_TO_CONVENTIONAL_ROWS)
+    transform_basis(value, DUAL_TO_CONVENTIONAL_ROWS)
 }
 
 /// Converts a conventional-basis symbol into CCSDS dual basis.
 fn conventional_to_dual(value: u8) -> u8 {
-    transform_basis(value, &CONVENTIONAL_TO_DUAL_ROWS)
+    transform_basis(value, CONVENTIONAL_TO_DUAL_ROWS)
 }
 
 /// Computes the 32 conventional-basis parity symbols for one RS(255,223)
 /// information block.
-fn encode_conventional_parity(
-    data: &[u8; CCSDS_RS_DATA_SYMBOLS],
-) -> [u8; CCSDS_RS_PARITY_SYMBOLS] {
+fn encode_conventional_parity(data: &[u8; CCSDS_RS_DATA_SYMBOLS]) -> [u8; CCSDS_RS_PARITY_SYMBOLS] {
     let mut parity = [0_u8; CCSDS_RS_PARITY_SYMBOLS];
 
     for &symbol in data {
@@ -156,12 +154,11 @@ fn encode_conventional_parity(
         for index in 0..(CCSDS_RS_PARITY_SYMBOLS - 1) {
             let generator_index = CCSDS_RS_PARITY_SYMBOLS - 1 - index;
 
-            parity[index] = parity[index + 1]
-                ^ gf_multiply(feedback, GENERATOR_POLYNOMIAL[generator_index]);
+            parity[index] =
+                parity[index + 1] ^ gf_multiply(feedback, GENERATOR_POLYNOMIAL[generator_index]);
         }
 
-        parity[CCSDS_RS_PARITY_SYMBOLS - 1] =
-            gf_multiply(feedback, GENERATOR_POLYNOMIAL[0]);
+        parity[CCSDS_RS_PARITY_SYMBOLS - 1] = gf_multiply(feedback, GENERATOR_POLYNOMIAL[0]);
     }
 
     parity
@@ -233,9 +230,7 @@ mod tests {
     const LIBFEC_LCG: &[u8; CCSDS_RS_CODEWORD_SYMBOLS] =
         include_bytes!("../tests/vectors/rs_ccsds/libfec_lcg.bin");
 
-    fn assert_matches_libfec(
-        expected: &[u8; CCSDS_RS_CODEWORD_SYMBOLS],
-    ) {
+    fn assert_matches_libfec(expected: &[u8; CCSDS_RS_CODEWORD_SYMBOLS]) {
         let mut data = [0_u8; CCSDS_RS_DATA_SYMBOLS];
         data.copy_from_slice(&expected[..CCSDS_RS_DATA_SYMBOLS]);
 
@@ -277,15 +272,9 @@ mod tests {
     #[test]
     fn test_basis_transform_round_trip_all_symbols() {
         for symbol in u8::MIN..=u8::MAX {
-            assert_eq!(
-                conventional_to_dual(dual_to_conventional(symbol)),
-                symbol
-            );
+            assert_eq!(conventional_to_dual(dual_to_conventional(symbol)), symbol);
 
-            assert_eq!(
-                dual_to_conventional(conventional_to_dual(symbol)),
-                symbol
-            );
+            assert_eq!(dual_to_conventional(conventional_to_dual(symbol)), symbol);
         }
     }
 
@@ -309,10 +298,7 @@ mod tests {
 
         let codeword = ccsds_rs_255_223_encode(&data);
 
-        assert_bit_exact!(
-            &codeword[..CCSDS_RS_DATA_SYMBOLS],
-            data
-        );
+        assert_bit_exact!(&codeword[..CCSDS_RS_DATA_SYMBOLS], data);
     }
 
     #[test]

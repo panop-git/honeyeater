@@ -23,9 +23,7 @@ fn quantize_f32_i16(value: f32, format: QFormat) -> i16 {
     let minimum = -scale;
     let maximum = scale - 1.0;
 
-    (value * scale)
-        .round()
-        .clamp(minimum, maximum) as i16
+    (value * scale).round().clamp(minimum, maximum) as i16
 }
 
 #[allow(clippy::cast_possible_truncation)]
@@ -35,9 +33,7 @@ fn quantize_f64_i16(value: f64, format: QFormat) -> i16 {
     let minimum = -scale;
     let maximum = scale - 1.0;
 
-    (value * scale)
-        .round()
-        .clamp(minimum, maximum) as i16
+    (value * scale).round().clamp(minimum, maximum) as i16
 }
 
 #[allow(clippy::cast_possible_truncation)]
@@ -49,9 +45,7 @@ fn quantize_f32_i8(value: f32, format: QFormat) -> i8 {
     let minimum = -scale;
     let maximum = scale - 1.0;
 
-    (value * scale)
-        .round()
-        .clamp(minimum, maximum) as i8
+    (value * scale).round().clamp(minimum, maximum) as i8
 }
 
 #[allow(clippy::cast_possible_truncation)]
@@ -63,9 +57,7 @@ fn quantize_f64_i8(value: f64, format: QFormat) -> i8 {
     let minimum = -scale;
     let maximum = scale - 1.0;
 
-    (value * scale)
-        .round()
-        .clamp(minimum, maximum) as i8
+    (value * scale).round().clamp(minimum, maximum) as i8
 }
 
 /// Converts signed 16-bit complex samples to normalised `Complex<f32>`.
@@ -75,11 +67,7 @@ fn quantize_f64_i8(value: f64, format: QFormat) -> i8 {
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn complex_i16_to_f32(
-    input: &[Complex<i16>],
-    output: &mut [Complex<f32>],
-    format: QFormat,
-) {
+pub fn complex_i16_to_f32(input: &[Complex<i16>], output: &mut [Complex<f32>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
 
     let scale = format.scale_f32();
@@ -97,11 +85,7 @@ pub fn complex_i16_to_f32(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn complex_i16_to_f64(
-    input: &[Complex<i16>],
-    output: &mut [Complex<f64>],
-    format: QFormat,
-) {
+pub fn complex_i16_to_f64(input: &[Complex<i16>], output: &mut [Complex<f64>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
 
     let scale = format.scale_f64();
@@ -120,11 +104,7 @@ pub fn complex_i16_to_f64(
 ///
 /// Panics if `input` and `output` have different lengths or if `format` uses
 /// more than seven fractional bits.
-pub fn complex_i8_to_f32(
-    input: &[Complex<i8>],
-    output: &mut [Complex<f32>],
-    format: QFormat,
-) {
+pub fn complex_i8_to_f32(input: &[Complex<i8>], output: &mut [Complex<f32>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
     assert_i8_q_format(format);
 
@@ -144,11 +124,7 @@ pub fn complex_i8_to_f32(
 ///
 /// Panics if `input` and `output` have different lengths or if `format` uses
 /// more than seven fractional bits.
-pub fn complex_i8_to_f64(
-    input: &[Complex<i8>],
-    output: &mut [Complex<f64>],
-    format: QFormat,
-) {
+pub fn complex_i8_to_f64(input: &[Complex<i8>], output: &mut [Complex<f64>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
     assert_i8_q_format(format);
 
@@ -173,11 +149,7 @@ pub fn complex_i8_to_f64(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn complex_f32_to_i16(
-    input: &[Complex<f32>],
-    output: &mut [Complex<i16>],
-    format: QFormat,
-) {
+pub fn complex_f32_to_i16(input: &[Complex<f32>], output: &mut [Complex<i16>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
 
     for (&input_sample, output_sample) in input.iter().zip(output.iter_mut()) {
@@ -195,11 +167,7 @@ pub fn complex_f32_to_i16(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn complex_f64_to_i16(
-    input: &[Complex<f64>],
-    output: &mut [Complex<i16>],
-    format: QFormat,
-) {
+pub fn complex_f64_to_i16(input: &[Complex<f64>], output: &mut [Complex<i16>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
 
     for (&input_sample, output_sample) in input.iter().zip(output.iter_mut()) {
@@ -218,11 +186,7 @@ pub fn complex_f64_to_i16(
 ///
 /// Panics if `input` and `output` have different lengths or if `format` uses
 /// more than seven fractional bits.
-pub fn complex_f32_to_i8(
-    input: &[Complex<f32>],
-    output: &mut [Complex<i8>],
-    format: QFormat,
-) {
+pub fn complex_f32_to_i8(input: &[Complex<f32>], output: &mut [Complex<i8>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
     assert_i8_q_format(format);
 
@@ -242,11 +206,7 @@ pub fn complex_f32_to_i8(
 ///
 /// Panics if `input` and `output` have different lengths or if `format` uses
 /// more than seven fractional bits.
-pub fn complex_f64_to_i8(
-    input: &[Complex<f64>],
-    output: &mut [Complex<i8>],
-    format: QFormat,
-) {
+pub fn complex_f64_to_i8(input: &[Complex<f64>], output: &mut [Complex<i8>], format: QFormat) {
     assert_equal_lengths(input.len(), output.len());
     assert_i8_q_format(format);
 
@@ -273,10 +233,7 @@ pub fn complex_f64_to_i8(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn rtl_sdr_u8_to_i8(
-    input: &[Complex<u8>],
-    output: &mut [Complex<i8>],
-) {
+pub fn rtl_sdr_u8_to_i8(input: &[Complex<u8>], output: &mut [Complex<i8>]) {
     assert_equal_lengths(input.len(), output.len());
 
     for (&input_sample, output_sample) in input.iter().zip(output.iter_mut()) {
@@ -297,10 +254,7 @@ pub fn rtl_sdr_u8_to_i8(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn rtl_sdr_i8_to_u8(
-    input: &[Complex<i8>],
-    output: &mut [Complex<u8>],
-) {
+pub fn rtl_sdr_i8_to_u8(input: &[Complex<i8>], output: &mut [Complex<u8>]) {
     assert_equal_lengths(input.len(), output.len());
 
     for (&input_sample, output_sample) in input.iter().zip(output.iter_mut()) {
@@ -327,10 +281,7 @@ pub fn rtl_sdr_i8_to_u8(
 /// # Panics
 ///
 /// Panics if `input` and `output` have different lengths.
-pub fn rtl_sdr_u8_to_f32(
-    input: &[Complex<u8>],
-    output: &mut [Complex<f32>],
-) {
+pub fn rtl_sdr_u8_to_f32(input: &[Complex<u8>], output: &mut [Complex<f32>]) {
     assert_equal_lengths(input.len(), output.len());
 
     let midpoint = RTL_SDR_U8.midpoint();
@@ -352,11 +303,7 @@ pub fn rtl_sdr_u8_to_f32(
 ///
 /// Panics unless `i_output` and `q_output` both have the same length as
 /// `input`.
-pub fn deinterleave_complex<T: Copy>(
-    input: &[Complex<T>],
-    i_output: &mut [T],
-    q_output: &mut [T],
-) {
+pub fn deinterleave_complex<T: Copy>(input: &[Complex<T>], i_output: &mut [T], q_output: &mut [T]) {
     assert_equal_lengths(input.len(), i_output.len());
     assert_equal_lengths(input.len(), q_output.len());
 
@@ -377,18 +324,12 @@ pub fn deinterleave_complex<T: Copy>(
 /// # Panics
 ///
 /// Panics unless `i_input`, `q_input`, and `output` all have equal lengths.
-pub fn interleave_complex<T: Copy>(
-    i_input: &[T],
-    q_input: &[T],
-    output: &mut [Complex<T>],
-) {
+pub fn interleave_complex<T: Copy>(i_input: &[T], q_input: &[T], output: &mut [Complex<T>]) {
     assert_equal_lengths(i_input.len(), q_input.len());
     assert_equal_lengths(i_input.len(), output.len());
 
-    for ((&i_value, &q_value), output_sample) in i_input
-        .iter()
-        .zip(q_input.iter())
-        .zip(output.iter_mut())
+    for ((&i_value, &q_value), output_sample) in
+        i_input.iter().zip(q_input.iter()).zip(output.iter_mut())
     {
         *output_sample = Complex::new(i_value, q_value);
     }
@@ -412,17 +353,9 @@ mod tests {
         let mut float = [Complex::new(0.0_f32, 0.0); 4];
         let mut actual = [Complex::new(0_i16, 0); 4];
 
-        complex_i16_to_f32(
-            &input,
-            &mut float,
-            q_format::USRP_SC16,
-        );
+        complex_i16_to_f32(&input, &mut float, q_format::USRP_SC16);
 
-        complex_f32_to_i16(
-            &float,
-            &mut actual,
-            q_format::USRP_SC16,
-        );
+        complex_f32_to_i16(&float, &mut actual, q_format::USRP_SC16);
 
         assert_bit_exact!(actual, input);
     }
@@ -439,17 +372,9 @@ mod tests {
         let mut float = [Complex::new(0.0_f64, 0.0); 4];
         let mut actual = [Complex::new(0_i16, 0); 4];
 
-        complex_i16_to_f64(
-            &input,
-            &mut float,
-            q_format::BLADERF_SC16_Q11,
-        );
+        complex_i16_to_f64(&input, &mut float, q_format::BLADERF_SC16_Q11);
 
-        complex_f64_to_i16(
-            &float,
-            &mut actual,
-            q_format::BLADERF_SC16_Q11,
-        );
+        complex_f64_to_i16(&float, &mut actual, q_format::BLADERF_SC16_Q11);
 
         assert_bit_exact!(actual, input);
     }
@@ -466,76 +391,48 @@ mod tests {
         let mut float = [Complex::new(0.0_f32, 0.0); 4];
         let mut actual = [Complex::new(0_i8, 0); 4];
 
-        complex_i8_to_f32(
-            &input,
-            &mut float,
-            q_format::HACKRF_SC8,
-        );
+        complex_i8_to_f32(&input, &mut float, q_format::HACKRF_SC8);
 
-        complex_f32_to_i8(
-            &float,
-            &mut actual,
-            q_format::HACKRF_SC8,
-        );
+        complex_f32_to_i8(&float, &mut actual, q_format::HACKRF_SC8);
 
         assert_bit_exact!(actual, input);
     }
 
     #[test]
+    #[allow(clippy::float_cmp)] // Exact equality is intentional for these binary-exact values.
     fn q15_normalised_range_is_correct() {
-        let input = [
-            Complex::new(i16::MIN, i16::MAX),
-        ];
+        let input = [Complex::new(i16::MIN, i16::MAX)];
 
         let mut output = [Complex::new(0.0_f32, 0.0)];
 
-        complex_i16_to_f32(
-            &input,
-            &mut output,
-            q_format::Q1_15,
-        );
+        complex_i16_to_f32(&input, &mut output, q_format::Q1_15);
 
         assert_eq!(output[0].re, -1.0);
-        assert_eq!(
-            output[0].im,
-            f32::from(i16::MAX) / 32_768.0
-        );
+        assert_eq!(output[0].im, f32::from(i16::MAX) / 32_768.0);
 
         assert!(output[0].im < 1.0);
     }
 
     #[test]
     fn q11_output_saturates_to_q11_range() {
-        let input = [
-            Complex::new(-2.0_f32, 2.0_f32),
-        ];
+        let input = [Complex::new(-2.0_f32, 2.0_f32)];
 
         let mut output = [Complex::new(0_i16, 0)];
 
-        complex_f32_to_i16(
-            &input,
-            &mut output,
-            q_format::BLADERF_SC16_Q11,
-        );
+        complex_f32_to_i16(&input, &mut output, q_format::BLADERF_SC16_Q11);
 
         assert_eq!(output[0], Complex::new(-2_048, 2_047));
     }
 
     #[test]
     fn rtl_sdr_integer_bias_mapping_is_correct() {
-        let input = [
-            Complex::new(0_u8, 127_u8),
-            Complex::new(128_u8, 255_u8),
-        ];
+        let input = [Complex::new(0_u8, 127_u8), Complex::new(128_u8, 255_u8)];
 
         let mut output = [Complex::new(0_i8, 0_i8); 2];
 
         rtl_sdr_u8_to_i8(&input, &mut output);
 
-        let expected = [
-            Complex::new(-128_i8, -1_i8),
-            Complex::new(0_i8, 127_i8),
-        ];
+        let expected = [Complex::new(-128_i8, -1_i8), Complex::new(0_i8, 127_i8)];
 
         assert_bit_exact!(output, expected);
     }
@@ -556,11 +453,9 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::float_cmp)] // Exact equality is intentional for these binary-exact values.
     fn rtl_sdr_float_path_preserves_true_midpoint() {
-        let input = [
-            Complex::new(127_u8, 128_u8),
-            Complex::new(0_u8, 255_u8),
-        ];
+        let input = [Complex::new(127_u8, 128_u8), Complex::new(0_u8, 255_u8)];
 
         let mut output = [Complex::new(0.0_f32, 0.0_f32); 2];
 

@@ -162,8 +162,7 @@ pub const RTL_SDR_SC8: QFormat = Q1_7;
 pub const AIRSPY_R2_SC16: QFormat = Q1_15;
 
 /// Airspy HF+ / Discovery native floating-point stream.
-pub const AIRSPYHF_CF32: QFormatAvailability =
-    QFormatAvailability::NotApplicable;
+pub const AIRSPYHF_CF32: QFormatAvailability = QFormatAvailability::NotApplicable;
 
 // ---------------------------------------------------------------------------
 // SDRplay
@@ -199,7 +198,7 @@ pub const LIMESDR_CS12: QFormat = Q1_15;
 // FUNcube Dongle Pro+
 // ---------------------------------------------------------------------------
 
-/// FUNcube Dongle Pro+ signed 16-bit audio-path representation.
+/// `FUNcube` Dongle Pro+ signed 16-bit audio-path representation.
 pub const FCDPP_SC16: QFormat = Q1_15;
 
 // ---------------------------------------------------------------------------
@@ -208,21 +207,19 @@ pub const FCDPP_SC16: QFormat = Q1_15;
 
 /// Epiq Sidekiq native signed-16 format.
 ///
-/// SoapySidekiq determines the scale from the specific card's ADC resolution,
+/// `SoapySidekiq` determines the scale from the specific card's ADC resolution,
 /// so there is no single static Q-format valid for every Sidekiq model.
-pub const SIDEKIQ_SC16: QFormatAvailability =
-    QFormatAvailability::DriverDependent;
+pub const SIDEKIQ_SC16: QFormatAvailability = QFormatAvailability::DriverDependent;
 
 // ---------------------------------------------------------------------------
 // Mirics
 // ---------------------------------------------------------------------------
 
-/// Mirics / MSi2500 signed-16 format.
+/// Mirics / `MSi2500` signed-16 format.
 ///
 /// The current driver does not establish a trustworthy normalised Q-format,
 /// so no numeric scale is exposed.
-pub const MIRI_SC16: QFormatAvailability =
-    QFormatAvailability::Unverified;
+pub const MIRI_SC16: QFormatAvailability = QFormatAvailability::Unverified;
 
 // ---------------------------------------------------------------------------
 // Red Pitaya
@@ -249,7 +246,7 @@ pub const IRIS_SC16: QFormat = Q1_15;
 // NetSDR / Afedri
 // ---------------------------------------------------------------------------
 
-/// RFSpace NetSDR signed-16 representation.
+/// `RFSpace` NetSDR signed-16 representation.
 pub const NETSDR_SC16: QFormat = Q1_15;
 
 /// Afedri signed-16 representation.
@@ -259,17 +256,14 @@ pub const AFEDRI_SC16: QFormat = NETSDR_SC16;
 // Soapy shims
 // ---------------------------------------------------------------------------
 
-/// SoapyOsmo delegates sample format and scaling to its underlying driver.
-pub const SOAPY_OSMO: QFormatAvailability =
-    QFormatAvailability::DriverDependent;
+/// `SoapyOsmo` delegates sample format and scaling to its underlying driver.
+pub const SOAPY_OSMO: QFormatAvailability = QFormatAvailability::DriverDependent;
 
-/// SoapyAudio supplies floating-point host samples.
-pub const SOAPY_AUDIO_CF32: QFormatAvailability =
-    QFormatAvailability::NotApplicable;
+/// `SoapyAudio` supplies floating-point host samples.
+pub const SOAPY_AUDIO_CF32: QFormatAvailability = QFormatAvailability::NotApplicable;
 
-/// SoapyRemote passes through the remote device's format and scaling.
-pub const SOAPY_REMOTE: QFormatAvailability =
-    QFormatAvailability::DriverDependent;
+/// `SoapyRemote` passes through the remote device's format and scaling.
+pub const SOAPY_REMOTE: QFormatAvailability = QFormatAvailability::DriverDependent;
 
 #[cfg(test)]
 mod tests {
@@ -294,6 +288,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::float_cmp)] // Exact equality is intentional for these binary-exact values.
     fn rtl_sdr_raw_format_has_exact_midpoint() {
         assert_eq!(RTL_SDR_U8.midpoint(), 127.5);
         assert_eq!(RTL_SDR_U8.scale(), 128.0);
