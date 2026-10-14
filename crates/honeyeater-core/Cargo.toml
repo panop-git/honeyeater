@@ -14,6 +14,7 @@ readme = "README.md"
 
 [dependencies]
 num-complex = { workspace = true }
+pm-remez = "0.3.5"
 rustfft = "6.4.1"
 
 [features]

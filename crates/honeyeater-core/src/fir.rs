@@ -423,16 +423,12 @@ mod tests {
             .collect()
     }
 
-    fn quantize_taps_i16(taps: &[f64], fractional_bits: u32) -> Vec<Complex<i16>> {
-        taps.iter()
-            .map(|&tap| Complex::new(quantize_i16(tap, fractional_bits), 0))
-            .collect()
+    fn quantize_taps_i16(taps: &[Complex<f64>], fractional_bits: u32) -> Vec<Complex<i16>> {
+        quantize_complex_i16(taps, fractional_bits)
     }
 
-    fn quantize_taps_i8(taps: &[f64], fractional_bits: u32) -> Vec<Complex<i8>> {
-        taps.iter()
-            .map(|&tap| Complex::new(quantize_i8(tap, fractional_bits), 0))
-            .collect()
+    fn quantize_taps_i8(taps: &[Complex<f64>], fractional_bits: u32) -> Vec<Complex<i8>> {
+        quantize_complex_i8(taps, fractional_bits)
     }
 
     fn dequantize_i16(values: &[Complex<i16>], fractional_bits: u32) -> Vec<Complex<f64>> {
@@ -453,18 +449,15 @@ mod tests {
             .collect()
     }
 
-    /// Conservative component-wise error bound for a real-coefficient FIR
-    /// where both input and coefficients have been quantised to the same Q
-    /// format.
-    ///
-    /// For one product:
-    ///
-    /// |(x + ex)(h + eh) - xh|
-    /// <= |x|*|eh| + |h|*|ex| + |ex|*|eh|
-    ///
-    /// The bound is summed across all taps and one half-LSB is added for the
-    /// final accumulator rounding.
-    fn quantization_bound(input: &[Complex<f64>], taps: &[f64], fractional_bits: u32) -> f64 {
+    /// Conservative per-component complex FIR error bound, allowing for
+    /// quantisation of both input and complex coefficients in the same Q format.
+    /// Each output component sums two real products per tap, and each operand
+    /// component contributes at most half an LSB of quantisation error.
+    fn quantization_bound(
+        input: &[Complex<f64>],
+        taps: &[Complex<f64>],
+        fractional_bits: u32,
+    ) -> f64 {
         let scale = f64::from(1_u32 << fractional_bits);
         let half_lsb = 0.5 / scale;
 
@@ -472,30 +465,29 @@ mod tests {
             current.max(sample.re.abs()).max(sample.im.abs())
         });
 
-        let max_tap = taps
-            .iter()
-            .fold(0.0_f64, |current, tap| current.max(tap.abs()));
+        let max_tap = taps.iter().fold(0.0_f64, |current, tap| {
+            current.max(tap.re.abs()).max(tap.im.abs())
+        });
 
         let tap_count =
             f64::from(u32::try_from(taps.len()).expect("FIR tap count must fit in u32"));
 
-        tap_count * (max_input * half_lsb + max_tap * half_lsb + half_lsb * half_lsb) + half_lsb
+        2.0 * tap_count * (max_input * half_lsb + max_tap * half_lsb + half_lsb * half_lsb)
+            + half_lsb
     }
 
     #[test]
     fn test_fir_f64_matches_scipy_oracle() {
-        let taps = npy::load_f64(&vector_path("taps_f64.npy"))
-            .expect("failed to load FIR coefficient vector");
-
-        let coefficients: Vec<Complex<f64>> =
-            taps.iter().map(|&tap| Complex::new(tap, 0.0)).collect();
+        let coefficients = npy::load_complex_f64(&vector_path("taps_complex_f64.npy"))
+            .expect("failed to load complex FIR coefficient vector");
 
         for n in [8usize, 16, 64] {
             let input = npy::load_complex_f64(&vector_path(&format!("input_f64_{n}.npy")))
                 .expect("failed to load FIR input vector");
 
-            let expected = npy::load_complex_f64(&vector_path(&format!("output_f64_{n}.npy")))
-                .expect("failed to load FIR reference vector");
+            let expected =
+                npy::load_complex_f64(&vector_path(&format!("output_complex_f64_{n}.npy")))
+                    .expect("failed to load FIR reference vector");
 
             let mut filter = FirFilter::<Complex<f64>>::new(&coefficients);
             let mut actual = vec![Complex::default(); input.len()];
@@ -517,18 +509,16 @@ mod tests {
 
     #[test]
     fn test_fir_f32_matches_scipy_oracle() {
-        let taps = npy::load_f32(&vector_path("taps_f32.npy"))
-            .expect("failed to load FIR coefficient vector");
-
-        let coefficients: Vec<Complex<f32>> =
-            taps.iter().map(|&tap| Complex::new(tap, 0.0)).collect();
+        let coefficients = npy::load_complex_f32(&vector_path("taps_complex_f32.npy"))
+            .expect("failed to load complex FIR coefficient vector");
 
         for n in [8usize, 16, 64] {
             let input = npy::load_complex_f32(&vector_path(&format!("input_f32_{n}.npy")))
                 .expect("failed to load FIR input vector");
 
-            let expected = npy::load_complex_f32(&vector_path(&format!("output_f32_{n}.npy")))
-                .expect("failed to load FIR reference vector");
+            let expected =
+                npy::load_complex_f32(&vector_path(&format!("output_complex_f32_{n}.npy")))
+                    .expect("failed to load FIR reference vector");
 
             let mut filter = FirFilter::<Complex<f32>>::new(&coefficients);
             let mut actual = vec![Complex::default(); input.len()];
@@ -544,16 +534,61 @@ mod tests {
     }
 
     #[test]
+    fn test_fir_real_f64_matches_scipy_oracle() {
+        let taps = npy::load_f64(&vector_path("taps_f64.npy"))
+            .expect("failed to load real FIR coefficient vector");
+
+        for n in [8usize, 16, 64] {
+            let input_complex = npy::load_complex_f64(&vector_path(&format!("input_f64_{n}.npy")))
+                .expect("failed to load FIR input vector");
+            let input: Vec<f64> = input_complex.iter().map(|sample| sample.re).collect();
+
+            let expected = npy::load_f64(&vector_path(&format!("output_real_f64_{n}.npy")))
+                .expect("failed to load real FIR reference vector");
+
+            let mut filter = FirFilter::<f64>::new(&taps);
+            let mut actual = vec![0.0; input.len()];
+
+            let split = input.len() / 3;
+            filter.process(&input[..split], &mut actual[..split]);
+            filter.process(&input[split..], &mut actual[split..]);
+
+            assert_snr_db!(actual, expected, min_db = 100.0);
+        }
+    }
+
+    #[test]
+    fn test_fir_real_f32_matches_scipy_oracle() {
+        let taps = npy::load_f32(&vector_path("taps_f32.npy"))
+            .expect("failed to load real FIR coefficient vector");
+
+        for n in [8usize, 16, 64] {
+            let input_complex = npy::load_complex_f32(&vector_path(&format!("input_f32_{n}.npy")))
+                .expect("failed to load FIR input vector");
+            let input: Vec<f32> = input_complex.iter().map(|sample| sample.re).collect();
+
+            let expected = npy::load_f32(&vector_path(&format!("output_real_f32_{n}.npy")))
+                .expect("failed to load real FIR reference vector");
+
+            let mut filter = FirFilter::<f32>::new(&taps);
+            let mut actual = vec![0.0; input.len()];
+            filter.process(&input, &mut actual);
+
+            assert_snr_db!(actual, expected, min_db = 60.0);
+        }
+    }
+
+    #[test]
     fn test_fir_i16_within_q15_quantization_bound() {
         const FRACTIONAL_BITS: u32 = 15;
 
-        let taps = npy::load_f64(&vector_path("taps_f64.npy"))
-            .expect("failed to load FIR coefficient vector");
+        let taps = npy::load_complex_f64(&vector_path("taps_complex_f64.npy"))
+            .expect("failed to load complex FIR coefficient vector");
 
         let input = npy::load_complex_f64(&vector_path("input_f64_64.npy"))
             .expect("failed to load FIR input vector");
 
-        let expected = npy::load_complex_f64(&vector_path("output_f64_64.npy"))
+        let expected = npy::load_complex_f64(&vector_path("output_complex_f64_64.npy"))
             .expect("failed to load FIR reference vector");
 
         let fixed_input = quantize_complex_i16(&input, FRACTIONAL_BITS);
@@ -578,13 +613,13 @@ mod tests {
     fn test_fir_i8_within_q7_quantization_bound() {
         const FRACTIONAL_BITS: u32 = 7;
 
-        let taps = npy::load_f64(&vector_path("taps_f64.npy"))
-            .expect("failed to load FIR coefficient vector");
+        let taps = npy::load_complex_f64(&vector_path("taps_complex_f64.npy"))
+            .expect("failed to load complex FIR coefficient vector");
 
         let input = npy::load_complex_f64(&vector_path("input_f64_64.npy"))
             .expect("failed to load FIR input vector");
 
-        let expected = npy::load_complex_f64(&vector_path("output_f64_64.npy"))
+        let expected = npy::load_complex_f64(&vector_path("output_complex_f64_64.npy"))
             .expect("failed to load FIR reference vector");
 
         let fixed_input = quantize_complex_i8(&input, FRACTIONAL_BITS);
@@ -603,6 +638,46 @@ mod tests {
 
         assert_close!(actual_re, expected_re, rtol = 0.0, atol = bound);
         assert_close!(actual_im, expected_im, rtol = 0.0, atol = bound);
+    }
+
+    #[test]
+    fn test_fir_i16_complex_taps_preserve_order_and_sign() {
+        let coefficients = [
+            Complex::new(3_i16, 2_i16),
+            Complex::new(-4, 5),
+            Complex::new(6, -7),
+        ];
+
+        let mut filter = FirFilter::<Complex<i16>>::new(&coefficients, 0);
+        let input = [
+            Complex::new(1_i16, 0_i16),
+            Complex::new(0, 0),
+            Complex::new(0, 0),
+        ];
+        let mut actual = [Complex::new(0_i16, 0_i16); 3];
+
+        filter.process(&input, &mut actual);
+        assert_eq!(actual, coefficients);
+    }
+
+    #[test]
+    fn test_fir_i8_complex_taps_preserve_order_and_sign() {
+        let coefficients = [
+            Complex::new(3_i8, 2_i8),
+            Complex::new(-4, 5),
+            Complex::new(6, -7),
+        ];
+
+        let mut filter = FirFilter::<Complex<i8>>::new(&coefficients, 0);
+        let input = [
+            Complex::new(1_i8, 0_i8),
+            Complex::new(0, 0),
+            Complex::new(0, 0),
+        ];
+        let mut actual = [Complex::new(0_i8, 0_i8); 3];
+
+        filter.process(&input, &mut actual);
+        assert_eq!(actual, coefficients);
     }
 
     #[test]

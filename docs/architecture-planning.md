@@ -200,6 +200,18 @@ The published library's link graph never touches non-permissive code, not even a
 
 This is the same pattern `ring` uses for NIST CAVP cryptographic test vectors. It keeps honeyeater unambiguously redistributable under MIT-OR-Apache-2.0, with no LGPL-relinking obligation on downstream users.
 
+### 11. FFT backend — RustFFT for runtime, PhastFT for test-only cross-validation
+
+**Decision:** `RustFftBackend` is the public runtime FFT implementation at 0.0.1. `rustfft` is a normal `honeyeater-core` dependency; `phastft` is a development dependency used only by the non-deterministic test configuration to cross-check the shared `FftWrapper` contract against the same SciPy oracle vectors. No user-selectable FFT backend API is shipped at 0.0.1.
+
+**Alternatives considered:**
+
+- **PhastFT as the runtime default** (the original roadmap's Phase 0 step 3): the existing wrapper only accepts power-of-two transform lengths. That excludes arbitrary-length transforms needed by a general-purpose RF DSP library and would make callers pad or reframe their data. Keeping it as a test-only implementation still provides an independently implemented cross-check without imposing its length restriction on users.
+- **RustFFT as the runtime default** (selected): it plans arbitrary odd and even transform lengths, exposes reusable forward/inverse plans and scratch requirements, and works directly with the project's `num_complex::Complex<T>` samples. The wrapper allocates plan and scratch storage at construction rather than on each transform. Its `deterministic` feature selects RustFFT's scalar planner to avoid CPU-dependent SIMD dispatch; as elsewhere in this project, floating-point comparisons still use tolerances rather than promising bit-for-bit cross-platform identity.
+- **A public, user-selectable backend abstraction or selector** (deferred): allowing callers to choose backends would require an additional public configuration and compatibility contract before a second production backend has demonstrated a need. The `FftWrapper` trait remains available, but the only shipped production implementation is `RustFftBackend`.
+
+**Consequences:** RustFFT is part of the runtime dependency and release surface; PhastFT is not linked into production builds. The public `RustFftBackend::new(size)` supports sizes of at least two samples, including non-powers of two, and reuses its scratch storage across calls. A separately constructed processor should be used for each concurrent stream (`Send`, not `Sync`). Both implementations remain tested against SciPy when their test configurations apply. A public backend selector, additional production backends, and backend-specific performance comparisons are future work; no performance superiority claim is made without comparative benchmarks.
+
 ## Style notes for future contributors and AI assistants
 
 - Verify claims about other libraries before relying on them in a design decision. Reading source on GitHub or current docs beats memory or training data.

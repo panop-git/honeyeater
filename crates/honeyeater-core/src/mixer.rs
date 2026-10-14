@@ -476,23 +476,92 @@ mod tests {
 
     #[test]
     fn test_i16_complex_multiply_saturates() {
-        let lhs = Complex::new(i16::MAX, i16::MAX);
-        let rhs = Complex::new(i16::MAX, i16::MAX);
+        let max = i16::MAX;
+        let lhs = Complex::new(max, max);
 
-        let actual = complex_multiply_i16(lhs, rhs, 15);
-
-        assert_eq!(actual.re, 0);
-        assert_eq!(actual.im, i16::MAX);
+        // Positive/negative overflow in both components, with no
+        // saturation in the opposite component.
+        for (rhs, expected) in [
+            (Complex::new(max, max), Complex::new(0, max)),
+            (Complex::new(-max, -max), Complex::new(0, i16::MIN)),
+            (Complex::new(max, -max), Complex::new(max, 0)),
+            (Complex::new(-max, max), Complex::new(i16::MIN, 0)),
+        ] {
+            assert_eq!(complex_multiply_i16(lhs, rhs, 15), expected);
+        }
     }
 
     #[test]
     fn test_i8_complex_multiply_saturates() {
-        let lhs = Complex::new(i8::MAX, i8::MAX);
-        let rhs = Complex::new(i8::MAX, i8::MAX);
+        let max = i8::MAX;
+        let lhs = Complex::new(max, max);
 
-        let actual = complex_multiply_i8(lhs, rhs, 7);
+        for (rhs, expected) in [
+            (Complex::new(max, max), Complex::new(0, max)),
+            (Complex::new(-max, -max), Complex::new(0, i8::MIN)),
+            (Complex::new(max, -max), Complex::new(max, 0)),
+            (Complex::new(-max, max), Complex::new(i8::MIN, 0)),
+        ] {
+            assert_eq!(complex_multiply_i8(lhs, rhs, 7), expected);
+        }
+    }
 
-        assert_eq!(actual.re, 0);
-        assert_eq!(actual.im, i8::MAX);
+    #[test]
+    fn test_i16_complex_multiply_conjugate_saturates() {
+        let max = i16::MAX;
+        let lhs = Complex::new(max, max);
+
+        for (rhs, expected) in [
+            (Complex::new(max, max), Complex::new(max, 0)),
+            (Complex::new(-max, -max), Complex::new(i16::MIN, 0)),
+            (Complex::new(max, -max), Complex::new(0, max)),
+            (Complex::new(-max, max), Complex::new(0, i16::MIN)),
+        ] {
+            assert_eq!(complex_multiply_conjugate_i16(lhs, rhs, 15), expected);
+        }
+    }
+
+    #[test]
+    fn test_i8_complex_multiply_conjugate_saturates() {
+        let max = i8::MAX;
+        let lhs = Complex::new(max, max);
+
+        for (rhs, expected) in [
+            (Complex::new(max, max), Complex::new(max, 0)),
+            (Complex::new(-max, -max), Complex::new(i8::MIN, 0)),
+            (Complex::new(max, -max), Complex::new(0, max)),
+            (Complex::new(-max, max), Complex::new(0, i8::MIN)),
+        ] {
+            assert_eq!(complex_multiply_conjugate_i8(lhs, rhs, 7), expected);
+        }
+    }
+
+    #[test]
+    fn test_i16_complex_multiply_conjugate_handles_min_imaginary() {
+        let rhs = Complex::new(0_i16, i16::MIN);
+
+        // Algebraic conjugation must not try to negate i16::MIN in i16.
+        assert_eq!(
+            complex_multiply_conjugate_i16(Complex::new(i16::MAX, 0), rhs, 15),
+            Complex::new(0, i16::MAX)
+        );
+        assert_eq!(
+            complex_multiply_conjugate_i16(Complex::new(i16::MIN, 0), rhs, 15),
+            Complex::new(0, i16::MIN)
+        );
+    }
+
+    #[test]
+    fn test_i8_complex_multiply_conjugate_handles_min_imaginary() {
+        let rhs = Complex::new(0_i8, i8::MIN);
+
+        assert_eq!(
+            complex_multiply_conjugate_i8(Complex::new(i8::MAX, 0), rhs, 7),
+            Complex::new(0, i8::MAX)
+        );
+        assert_eq!(
+            complex_multiply_conjugate_i8(Complex::new(i8::MIN, 0), rhs, 7),
+            Complex::new(0, i8::MIN)
+        );
     }
 }

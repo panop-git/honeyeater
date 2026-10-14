@@ -25,6 +25,7 @@ mod biquad;
 mod crc;
 mod fft;
 mod fir;
+mod fir_design;
 mod magnitude;
 mod mixer;
 mod nco;
@@ -69,6 +70,12 @@ pub use nco::Nco;
 
 // Brings FIR filter processor into current scope
 pub use fir::FirFilter;
+
+// Brings FIR coefficient-design functions into current scope
+pub use fir_design::{
+    FirWindow, firwin_bandpass, firwin_bandstop, firwin_highpass,
+    firwin_lowpass, remez,
+};
 
 // Brings CCSDS Reed-Solomon encoder into current scope
 pub use rs_ccsds::{

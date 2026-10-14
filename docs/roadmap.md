@@ -2,9 +2,9 @@
 
 ## Status
 
-Source version **0.0.1 is prepared for the first kernel release**. Phase 0 scaffolding is complete. Phase 1 steps 1–3 and 5–10 are implemented and exposed through the `honeyeater` facade; their tests use committed SciPy/NumPy fixtures, reveng CRC check values, fixed-point bounds, and CCSDS/libfec references. Step 4 has oracle-tested FFT backends, but those implementations are currently compiled only for core tests; only `FftWrapper` is public.
+Source version **0.0.1 is prepared for the first kernel release**. Phase 0 scaffolding is complete. Phase 1 steps 1–10 are implemented and exposed through the `honeyeater` facade; their tests use committed SciPy/NumPy fixtures, reveng CRC check values, fixed-point bounds, and CCSDS/libfec references. Step 4 exposes `RustFftBackend`; PhastFT remains test-only (decision 11).
 
-The API remains experimental. Before publication, expose a usable FFT backend constructor and validate the cross-platform CI matrix. Version preparation does not publish crates or create the public release repository. CUDA remains a placeholder, and the later Tier-1 and Phase 2 kernels remain planned.
+The API remains experimental. Before publication, validate the cross-platform CI matrix. Version preparation does not publish crates or create the public release repository. CUDA remains a placeholder, and the later Tier-1 and Phase 2 kernels remain planned.
 
 Local validation on 2026-09-30 passed: formatting, Clippy with warnings denied, 79 unit tests, two facade doc tests, rustdoc with warnings denied, `cargo deny check`, and the mdBook build. All 99 `.npy` fixtures emitted by the current generators reproduce byte-for-byte with the canonical NumPy/SciPy pins. The libfec codeword fixtures were checked by the encoder tests; their generator was not rerun during this release preparation.
 
@@ -97,7 +97,7 @@ FFT, DCT, STFT, Hilbert, wavelet (deferred), spectral-estimation algorithms (Wel
 - **Primary oracle:** scipy.signal + scipy.fft (BSD-3)
 - **Secondary:** FFTW via `pyfftw`, because scipy uses pocketfft and FFTW is genuinely independent
 - **Known weaknesses:** scipy's high-order elliptic and `firls` have documented divergences from MATLAB; Octave's `signal` package is the tiebreaker for those corner cases. Always generate filter coefficients in SOS form when comparing.
-- **FFT delegation:** PhastFT and RustFFT implementations share the `FftWrapper` contract and are tested against SciPy. Their constructors remain test-only; choosing and exposing a public backend is a release gate.
+- **FFT delegation:** PhastFT and RustFFT implementations share the `FftWrapper` contract and are tested against SciPy. `RustFftBackend` is public; PhastFT remains test-only (decision 11).
 
 ### Cat 2 — Filters and resampling
 FIR/IIR/biquad design, polyphase, adaptive filters in their *filter* role (LMS as denoiser), integer/rational/Farrow resamplers.
@@ -142,7 +142,7 @@ All items are **complete**. The list is kept for the record of what Phase 0 comm
 
 1. Cargo workspace skeleton: workspace `Cargo.toml` at root, `honeyeater` (facade), `honeyeater-core` (sample types, trait definitions, signal containers), `honeyeater-test` (cross-validation helpers).
 2. The `Sample` trait plus the fixed-point sample type set in `honeyeater-core`: `Complex<i16>` and `Complex<i8>` as kernel sample types (`Sample`-implementing); `Complex<u8>` as a transport-only type at the SDR boundary, debiased to one of the others before any kernel touches it (the three integer formats produced by SDR hardware across the field — see `docs/architecture-planning.md` for the landscape and decisions 5–6 for the rationale). The trait is satisfied by `f32`, `f64`, `i16`, `i8` (and their `Complex<…>` wrappings). Without this wiring, generic kernels can't be written and fixed-point can't ship at 0.0.1. Goes in before any kernel.
-3. Wire up FFT backend dependencies in `honeyeater-core` (`phastft` and `rustfft`), used by Phase 1 step 4. `num-complex` is re-exported through `honeyeater-core` so user code has a stable import path for the sample type. A default public FFT constructor remains a release gate.
+3. Wire up FFT backend dependencies in `honeyeater-core` (`phastft` and `rustfft`), used by Phase 1 step 4. `num-complex` is re-exported through `honeyeater-core` so user code has a stable import path for the sample type. `RustFftBackend::new` is public. RustFFT replaced the planned PhastFT default because it supports arbitrary FFT lengths and reusable plans and scratch storage (decision 11).
 4. `honeyeater-test`: the seven assertion macros, a `.npy` loader for committed reference vectors, a scipy-subprocess helper for live cross-validation. **This is the highest-leverage piece of infrastructure in the project.**
 5. The `tools/oracle-gen/` workspace, outside the published crate set, for generating reference vectors from libfec / AFF3CT / etc. without those libraries entering the library's link graph.
 6. CI: a single `ci.yml` with `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo doc` with `RUSTDOCFLAGS=-Dwarnings`, plus `cargo deny check`. Stable + MSRV + nightly.
@@ -151,20 +151,20 @@ All items are **complete**. The list is kept for the record of what Phase 0 comm
 
 ### Phase 1 — Tier-1 RF/electrical primitives, in order
 
-Steps 1–3 and 5–10 are implemented and public. Step 4 is implemented and validated in core tests, with a public constructor still outstanding. The original order was "fastest validation win × highest user value":
+Steps 1–10 are implemented and public. The original order was "fastest validation win × highest user value":
 
 1. **Hann window** — trivial, scipy bit-near oracle, exercises the entire test harness end-to-end before anything risky is built. Float-only initially (windows aren't typically fixed-point).
 2. **Hamming, Blackman-Harris, Kaiser windows** — same harness, rounds out the window family.
 3. **RBJ low-pass biquad coefficients + execution** — first filter, validates the design-coefficient testing path (formulas are the spec; cross-check execution against scipy `sosfilt`).
-4. **FFT wrapper** with PhastFT and RustFFT backends (complex-in / complex-out; backend constructors currently test-only) — establishes the signal-type plumbing. Float-only (FFT in fixed-point is a separate non-trivial implementation). Real-input FFT (real → conjugate-symmetric complex, the `realfft` shape) is not part of 0.0.1; add when a kernel needs it.
+4. **FFT wrapper** with public RustFFT and test-only PhastFT backends (complex-in / complex-out) — establishes the signal-type plumbing. Float-only (FFT in fixed-point is a separate non-trivial implementation). Real-input FFT (real → conjugate-symmetric complex, the `realfft` shape) is not part of 0.0.1; add when a kernel needs it.
 5. **CRC-32 (Castagnoli) and CRC-16** — first bit-exact test, reveng oracle, tiny code, no external dep.
 6. **NCO / DDS** — first stateful kernel, exercises SFDR property testing. **Implemented in both float and fixed-point** (`Complex<i16>` and `Complex<i8>`) — this is the first fixed-point kernel; it's small and well-defined so it's a good first proof of the trait machinery.
 7. **SDR sample boundary helpers** — conversions between `Complex<i16>` / `Complex<i8>` (kernel sample types) and `Complex<f32>` / `Complex<f64>`, with Q-format scaling as a parameter (so the same `i16` conversion serves USRP `sc16` at Q1.15 and BladeRF `SC16_Q11` at Q1.11 by passing the right scale), plus `Complex<u8>` → `Complex<i8>` / `Complex<f32>` debiasing for RTL-SDR (subtracting the 127.5 midpoint), plus optional deinterleave to separate I/Q arrays. Trivial code, but unblocks every SDR user. Tested by round-trip identity (for the lossless paths), value-range checks, and bias-handling correctness for the RTL-SDR path. **Ships alongside** a `q_format` module of named per-radio constants covering every radio with a current SoapySDR support module (USRP, BladeRF including `SC16_Q11`, `SC16_Q11_PACKED`, and `SC8_Q7` modes, HackRF, RTL-SDR, Airspy R2/Mini, Airspy HF+, SDRplay, Pluto with separate RX/TX constants, LimeSDR including the `CS12` packed variant, FCDPP, Sidekiq, Mirics, Red Pitaya, XTRX, Iris, NetSDR/Afedri, plus the SoapyOsmo/SoapyAudio/SoapyRemote shims) so users pass the constant for the radio they own rather than typing a raw scale. See `docs/architecture-planning.md` decision 6 for the full table.
-8. **FIR filter execution** — **implemented in both float and fixed-point.** Hot-path kernel; native fixed-point is what makes high-rate streaming receivers viable across SDR vendors. Cross-validate float version against scipy `lfilter`; cross-validate fixed-point against the float version (within Q-format quantisation bounds).
-9. **Complex multiply** (the mixer primitive) — **implemented in both float and fixed-point.** Tiny but ubiquitous; needed alongside the NCO for downconversion.
+8. **FIR filter execution** — **implemented in both float and fixed-point.** Hot-path kernel; native fixed-point is what makes high-rate streaming receivers viable across SDR vendors. Cross-validate float version against scipy `lfilter`; cross-validate fixed-point against the float version (within Q-format quantisation bounds). FIR coefficient design (window method and Parks–McClellan) was implemented ahead of its later Tier-1 position because the existing windows and SciPy oracle infrastructure enabled independent validation.
+9. **Complex multiply** (the mixer primitive) — **implemented in both float and fixed-point.** Tiny but ubiquitous; needed alongside the NCO for downconversion. Magnitude and power primitives were added here because they are complementary RF sample operations.
 10. **CCSDS Reed-Solomon (255, 223) encoder** — **first standards-conformance demo.** Complete codewords are bit-exact against the committed libfec fixtures. Separate tests check the CCSDS 131.0-B-5 Annex F basis-transformation examples, all-symbol basis round trips, and systematic output. The encoder milestone is implemented; the remaining release gates are listed above.
 
-Tier 1 then continues (no fixed-point unless explicitly noted): FIR design (window method, Parks-McClellan), IIR design (Butterworth/Chebyshev/Elliptic), polyphase resampling (consider fixed-point), mixer / IQ imbalance / DC offset removal (consider fixed-point), AGC (consider fixed-point), AWGN channel, PLL / Costas loop, Mueller & Müller timing recovery, linear modems (BPSK / QPSK / 8PSK / 16-QAM / 64-QAM), CPFSK / GMSK, Viterbi decoder, LMS / RLS equaliser. None of these block 0.0.1 — they ship as they're ready.
+Tier 1 then continues (no fixed-point unless explicitly noted): IIR design (Butterworth/Chebyshev/Elliptic), polyphase resampling (consider fixed-point), mixer / IQ imbalance / DC offset removal (consider fixed-point), AGC (consider fixed-point), AWGN channel, PLL / Costas loop, Mueller & Müller timing recovery, linear modems (BPSK / QPSK / 8PSK / 16-QAM / 64-QAM), CPFSK / GMSK, Viterbi decoder, LMS / RLS equaliser. None of these block 0.0.1 — they ship as they're ready.
 
 ### Phase 2 — Tier-2 specialty (post-0.0.1)
 
@@ -182,11 +182,11 @@ Tier 1 then continues (no fixed-point unless explicitly noted): FIR design (wind
 
 ## Preparing and publishing 0.0.1
 
-The source manifests, internal dependency requirements, lockfile, and changelog now target 0.0.1. The CCSDS RS(255,223) milestone is implemented and oracle-tested. Finish the public FFT constructor and full release validation before publishing to a fresh public repository. The minimum kernel set is:
+The source manifests, internal dependency requirements, lockfile, and changelog now target 0.0.1. The CCSDS RS(255,223) milestone is implemented and oracle-tested. Finish full release validation before publishing to a fresh public repository. The minimum kernel set is:
 
 - Window family (Hann, Hamming, Blackman-Harris, Kaiser)
 - RBJ low-pass biquad design and execution (float)
-- FFT backend contract and oracle-tested PhastFT / RustFFT implementations (float; public constructor outstanding)
+- FFT backend contract and public RustFFT implementation (float; PhastFT test-only)
 - CRC-32 and CRC-16
 - NCO / DDS (float **and** fixed-point)
 - SDR sample boundary helpers (integer↔float, Q-format-aware)
