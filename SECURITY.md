@@ -31,7 +31,7 @@ Issues we do **not** treat as security-sensitive (but still welcome as ordinary 
 
 ## Disclosure timeline
 
-honeyeater is pre-v0.0.1 and has no formal SLAs. The intent is to triage reports promptly and coordinate disclosure when a fix is ready. Once the project reaches a stable release, this section will be expanded with concrete timeline commitments.
+honeyeater is preparing its first kernel release, 0.0.1, and has no formal SLAs. The intent is to triage reports promptly and coordinate disclosure when a fix is ready. Once the project reaches a stable release, this section will be expanded with concrete timeline commitments.
 
 ## Scope
 

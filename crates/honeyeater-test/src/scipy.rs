@@ -1,47 +1,68 @@
-//! Live scipy cross-validation via subprocess.
+//! Helpers for invoking Python/SciPy as a live numerical oracle.
 //!
-//! For kernels where committing a `.npy` reference vector is overkill (e.g.
-//! a one-off check that a 32-tap window matches scipy's output up to
-//! floating-point slop), this helper shells out to a Python interpreter
-//! with scipy installed and returns the result as a parseable string or
-//! native array.
-//!
-//! # Phase 0 status
-//!
-//! Stub. The signature below defines the contract; implementation is
-//! deferred to the first kernel that needs live cross-validation rather
-//! than a committed vector.
-//!
-//! When implemented, the helper should:
-//!
-//! - Look up the Python interpreter via `PYTHON` env var, falling back to
-//!   `python3` on PATH.
-//! - Pass the user's script via stdin (not as a temp file — avoids cleanup
-//!   races).
-//! - Pin scipy/numpy versions in `tools/oracle-gen/requirements.txt` and
-//!   verify the installed versions match before running. Mismatches are a
-//!   test failure, not a silent run.
-//! - Use a JSON output convention so the helper can deserialise without
-//!   parsing free-form text.
-//! - Time out after some reasonable bound (60 s default; configurable).
-//! - Skip — not fail — when no interpreter is available, so contributors
-//!   without Python installed can still run the bulk of the suite. The
-//!   scipy-using tests should be marked clearly so the skip is visible in
-//!   the test report.
+//! Normal Honeyeater tests should prefer committed reference vectors generated
+//! by `tools/oracle-gen`. This module provides a lightweight subprocess helper
+//! for development-time cross-validation where generating and committing a
+//! reference vector is unnecessary.
 
-/// Run a Python script via the scipy-enabled interpreter and return its
-/// stdout.
+use std::io::Write;
+use std::process::{Command, Stdio};
+
+/// Run a Python script and return its stdout.
 ///
-/// The script is responsible for emitting parseable output (typically a
-/// JSON object) that the caller deserialises.
+/// The Python interpreter may be overridden with the `PYTHON` environment
+/// variable. Otherwise, `python` is used from `PATH`.
 ///
-/// # Panics
+/// The script is passed to Python through stdin. If Python exits with a
+/// non-zero status, its stderr is returned as an error.
 ///
-/// Stub: always panics.
-#[must_use]
-pub fn run(_script: &str) -> String {
-    unimplemented!(
-        "honeyeater_test::scipy::run is a Phase 0 stub; \
-         implementation deferred to first kernel that needs live scipy cross-validation"
-    );
+/// # Errors
+///
+/// Returns an error if Python cannot be started, the script cannot be written
+/// to stdin, the process cannot be waited on, Python exits unsuccessfully, or
+/// its stdout is not valid UTF-8.
+pub fn run(script: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let python = std::env::var("PYTHON").unwrap_or_else(|_| "python".to_string());
+
+    let mut child = Command::new(python)
+        .arg("-")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    child
+        .stdin
+        .as_mut()
+        .ok_or("failed to open Python stdin")?
+        .write_all(script.as_bytes())?;
+
+    let output = child.wait_with_output()?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "Python oracle failed:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .into());
+    }
+
+    Ok(String::from_utf8(output.stdout)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runs_python_script() {
+        let output = run("print(2 + 2)").unwrap();
+        assert_eq!(output.trim(), "4");
+    }
+
+    #[test]
+    fn reports_python_failure() {
+        let result = run("raise RuntimeError('oracle failure')");
+        assert!(result.is_err());
+    }
 }

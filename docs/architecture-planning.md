@@ -1,6 +1,6 @@
 # Architecture planning
 
-Architectural decisions for honeyeater pre-0.0.1, with rationale. All decisions below (numbered 1–10, with 3a as a sub-decision under 3) are now resolved. This document is the authoritative reference for design intent; if a future contributor wants to deviate from one of these, the deviation needs to update this file with reasoning.
+Architectural decisions for honeyeater's first kernel release, with rationale. All decisions below (numbered 1–10, with 3a as a sub-decision under 3) are now resolved. This document is the authoritative reference for design intent; if a future contributor wants to deviate from one of these, the deviation needs to update this file with reasoning.
 
 ## Constraints
 
@@ -56,7 +56,13 @@ The hot path uses two complementary forms:
 - **Borrowed output** — `fn process(input: &[T], output: &mut [T])`. Caller pre-allocates both buffers. Zero allocations per call. Primary form for stateless operations (windows, gain adjustment, fixed-point↔float conversion).
 - **Stateful processors** — objects constructed once, holding internal state, called repeatedly. Primary form for anything carrying state between calls (filters, NCOs, PLLs, demodulators, AGCs, equalisers).
 
-An **owned-output** form (`fn process(input) -> Vec<T>`) is offered as a thin convenience layer for offline analysis, filter design, one-shot processing. It is a three-line wrapper on top of the borrowed-output primitive, not a separate implementation.
+An **owned-output** form (`fn process(input) -> Vec<T>`) may be offered as a
+thin convenience layer where it materially improves one-shot or offline use.
+It must wrap the borrowed-output implementation rather than duplicate kernel
+logic. Stateful processors such as filters should generally provide this
+convenience form. Low-level boundary-conversion helpers may remain
+borrowed-output-only where adding an owned variant would substantially multiply
+the API surface without adding new functionality.
 
 Documentation for the owned-output form must include words to this effect: *"Allocates a fresh output buffer on every call. Suitable for offline analysis, filter design, one-shot processing, and any use where occasional unpredictable delays are acceptable. Not suitable for hard real-time streaming pipelines (e.g. live SDR receive chains where a missed buffer drops samples)."*
 
@@ -160,7 +166,7 @@ User code reads as: `let floats = sdr::to_complex_f32(samples, q_format::BLADERF
 
 This is **not** vendor-specific code (no driver bindings, no I/O paths, no licence entanglements) — just named constants and a docs table. It makes the bare `Complex<i16>` / `Complex<i8>` representation safe in practice: the Q-format-mixing bug only fires if a user types raw scaling numbers, and the constants make that unnecessary. The SoapySDR API itself does not standardise Q-format per radio — only `fullScale` — so this table is the canonical mapping; it should be updated whenever a new SoapySDR module appears or an existing one changes its native format.
 
-**Open question for first implementation**: whether `Complex<i16>` and `Complex<i8>` are used directly, or whether they're wrapped in newtypes (`Sc16`, `Sc8` or similar) for type clarity at API boundaries. The trade-off: direct use is more familiar and composes more easily with other Rust crates; newtypes catch a residual class of "I passed USRP Q1.15 samples to a function expecting BladeRF Q1.11 samples" mistakes at compile time, even when the named constants above are used at conversion time. With the named constants in place the bare representation is likely sufficient, but the decision is deferred to first-kernel time; whichever choice is made should be consistent across both. (`Complex<u8>` is already decided: transport-only, no newtype needed because it never reaches a generic `Sample`-bounded API.)
+**Open question for first implementation**: whether `Complex<i16>` and `Complex<i8>` are used directly, or whether they're wrapped in newtypes (`Sc16`, `Sc8` or similar) for type clarity at API boundaries. The trade-off: direct use is more familiar and composes more easily with other Rust crates; newtypes catch a residual class of "I passed USRP Q1.15 samples to a function expecting BladeRF Q1.11 samples" mistakes at compile time, even when the named constants above are used at conversion time. Phase 1 uses bare `Complex<i16>` and `Complex<i8>` consistently, with named Q-format constants at the conversion boundary. (`Complex<u8>` is already decided: transport-only, no newtype needed because it never reaches a generic `Sample`-bounded API.)
 
 ### 7. Workspace versioning — synchronised across crates
 
@@ -176,7 +182,7 @@ Return `Result<T, E>` (with a honeyeater error enum) when something can fail bas
 
 This is the current consensus in the Rust scientific computing ecosystem (`ndarray`, `nalgebra`, `rustfft` all use it). It's also appropriate for honeyeater specifically because the Panop runtime runs as a long-lived process where unbounded panicking is unacceptable: data-driven errors must be recoverable.
 
-A panic policy needs to be documented per public API. The first-kernel recipe (see roadmap) will set the precedent.
+Public Phase 1 APIs document their panic and error conditions. New APIs follow the same policy and the kernel recipe in the roadmap.
 
 ### 9. Concurrency — `Send` by default, `Sync` only where trivially correct, no internal parallelism at 0.0.1
 
@@ -193,6 +199,18 @@ Non-permissively-licensed reference implementations (libfec under LGPL, GNU Radi
 The published library's link graph never touches non-permissive code, not even at test time. The library and its dev-dependencies are MIT/Apache/BSD throughout.
 
 This is the same pattern `ring` uses for NIST CAVP cryptographic test vectors. It keeps honeyeater unambiguously redistributable under MIT-OR-Apache-2.0, with no LGPL-relinking obligation on downstream users.
+
+### 11. FFT backend — RustFFT for runtime, PhastFT for test-only cross-validation
+
+**Decision:** `RustFftBackend` is the public runtime FFT implementation at 0.0.1. `rustfft` is a normal `honeyeater-core` dependency; `phastft` is a development dependency used only by the non-deterministic test configuration to cross-check the shared `FftWrapper` contract against the same SciPy oracle vectors. No user-selectable FFT backend API is shipped at 0.0.1.
+
+**Alternatives considered:**
+
+- **PhastFT as the runtime default** (the original roadmap's Phase 0 step 3): the existing wrapper only accepts power-of-two transform lengths. That excludes arbitrary-length transforms needed by a general-purpose RF DSP library and would make callers pad or reframe their data. Keeping it as a test-only implementation still provides an independently implemented cross-check without imposing its length restriction on users.
+- **RustFFT as the runtime default** (selected): it plans arbitrary odd and even transform lengths, exposes reusable forward/inverse plans and scratch requirements, and works directly with the project's `num_complex::Complex<T>` samples. The wrapper allocates plan and scratch storage at construction rather than on each transform. Its `deterministic` feature selects RustFFT's scalar planner to avoid CPU-dependent SIMD dispatch; as elsewhere in this project, floating-point comparisons still use tolerances rather than promising bit-for-bit cross-platform identity.
+- **A public, user-selectable backend abstraction or selector** (deferred): allowing callers to choose backends would require an additional public configuration and compatibility contract before a second production backend has demonstrated a need. The `FftWrapper` trait remains available, but the only shipped production implementation is `RustFftBackend`.
+
+**Consequences:** RustFFT is part of the runtime dependency and release surface; PhastFT is not linked into production builds. The public `RustFftBackend::new(size)` supports sizes of at least two samples, including non-powers of two, and reuses its scratch storage across calls. A separately constructed processor should be used for each concurrent stream (`Send`, not `Sync`). Both implementations remain tested against SciPy when their test configurations apply. A public backend selector, additional production backends, and backend-specific performance comparisons are future work; no performance superiority claim is made without comparative benchmarks.
 
 ## Style notes for future contributors and AI assistants
 

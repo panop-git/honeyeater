@@ -12,8 +12,11 @@ keywords.workspace = true
 categories.workspace = true
 readme = "README.md"
 
+[features]
+deterministic = ["honeyeater-core/deterministic"]
+
 [dependencies]
-honeyeater-core = { path = "../honeyeater-core", version = "0.0.0" }
+honeyeater-core = { path = "../honeyeater-core", version = "0.0.1" }
 
 [lints]
 workspace = true

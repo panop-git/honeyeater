@@ -26,7 +26,7 @@ New to the project? Begin with **[Start here](start-here.md)** — a gentle, no-
 
 ## Status
 
-honeyeater is pre-v0.0.1. No DSP [kernels](glossary.md#kernel) (individual signal-processing building blocks) are implemented yet.
+Version 0.0.1 is prepared for the first kernel release. Phase 1 [kernels](glossary.md#kernel) and committed oracle fixtures are implemented, and the facade exposes the public core API. FFT backend constructors remain test-only. The API is experimental; see the [roadmap](roadmap.md#status) for implemented coverage and remaining release gates. Publication is a separate step.
 
 ## API reference
 

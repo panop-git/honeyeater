@@ -109,7 +109,7 @@ This affects how releases are made (one version bump, not per-crate) and how dow
 
 ## Deprecation and breaking changes
 
-Pre-0.0.1, the codebase is unstable and breaking changes are free. CHANGELOG.md tracks them but nothing more is required.
+At 0.0.1, the public API remains experimental. Breaking changes are recorded in CHANGELOG.md; the formal deprecation policy below takes effect at 0.1.0.
 
 Once 0.1.0 ships:
 

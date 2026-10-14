@@ -4,84 +4,180 @@
 //! `tests/vectors/` in numpy's `.npy` binary format. This module loads them
 //! into native Rust slices for use by tests.
 //!
-//! # Phase 0 status
+//! # Supported data
 //!
-//! Stub. The loader signatures below define the shape of the API but the
-//! implementations are deferred to the first kernel that needs a `.npy`
-//! reference vector. The roadmap (`docs/roadmap.md`, "Phase 1 — Tier-1
-//! RF/electrical primitives") expects this to happen at the Hann window
-//! step.
-//!
-//! When implemented, the loader should:
-//!
-//! - Parse the `.npy` v1.0/v2.0/v3.0 header (a small dict literal in ASCII).
-//! - Verify the `dtype` and `shape` match what the caller expects.
-//! - Return a borrowed slice or owned `Vec`, picking the form that avoids
-//!   re-allocation on the hot path.
-//! - Refuse `.npy` files saved with `allow_pickle = True` (security
-//!   defence-in-depth, though numpy stopped defaulting that to True years
-//!   ago).
-//!
-//! A pure-Rust implementation is preferable to a binding. The format is
-//! small enough that hand-rolling is easy and avoids a dependency.
+//! Implemented. Reference vectors are loaded using `npyz`, with shape
+//! validation appropriate to each vector type and rejection of pickled/object data.
 
+use std::error::Error;
+use std::fs::File;
+use std::io::{BufReader, Error as IoError, ErrorKind};
 use std::path::Path;
 
 use num_complex::Complex;
 
+/// Result type returned by `.npy` reference-vector loading operations.
+///
+pub type NpyResult<T> = Result<T, Box<dyn Error>>;
+
+/// Generic 1-Dimensional Loader
+fn load_1d<T>(path: &Path) -> NpyResult<Vec<T>>
+where
+    T: npyz::Deserialize,
+{
+    // Open the file without reading the whole thing into memory first.
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    // Parse the .npy header.
+    let npy = npyz::NpyFile::new(reader)?;
+
+    // Honeyeater's loader contract is specifically for 1-D reference vectors.
+    if npy.shape().len() != 1 {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            format!("expected a 1-D .npy array, found shape {:?}", npy.shape()),
+        )
+        .into());
+    }
+
+    // Never allow Python pickle/object arrays.
+    if npy.uses_pickled_array() {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            "pickled/object .npy arrays are not supported",
+        )
+        .into());
+    }
+
+    // npyz checks that the numpy dtype is compatible with T.
+    let data: Vec<T> = npy.into_vec()?;
+
+    Ok(data)
+}
+/// Loads a one-dimensional `.npy` array of unsigned power or magnitude counts.
+///
+/// # Errors
+///
+/// Returns an error for unreadable files, invalid NPY data, a non-1-D shape,
+/// pickled/object arrays, or an incompatible dtype.
+pub fn load_u32(path: &Path) -> NpyResult<Vec<u32>> {
+    load_1d(path)
+}
+
 /// Load a `.npy` file containing a 1-D array of `f32` values.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Stub: always panics.
-#[must_use]
-pub fn load_f32(_path: &Path) -> Vec<f32> {
-    unimplemented!(
-        "honeyeater_test::npy::load_f32 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `f32`.
+pub fn load_f32(path: &Path) -> NpyResult<Vec<f32>> {
+    load_1d(path)
 }
 
 /// Load a `.npy` file containing a 1-D array of `f64` values.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Stub: always panics.
-#[must_use]
-pub fn load_f64(_path: &Path) -> Vec<f64> {
-    unimplemented!(
-        "honeyeater_test::npy::load_f64 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `f64`.
+pub fn load_f64(path: &Path) -> NpyResult<Vec<f64>> {
+    load_1d(path)
 }
 
 /// Load a `.npy` file containing a 1-D array of `Complex<f32>` values.
 ///
-/// numpy stores complex arrays as interleaved real/imaginary pairs, which
-/// is the same memory layout as a slice of [`num_complex::Complex<f32>`].
-/// The loader returns the data in honeyeater's preferred type to avoid a
-/// caller-side cast on every test.
+/// # Errors
 ///
-/// # Panics
-///
-/// Stub: always panics.
-#[must_use]
-pub fn load_complex_f32(_path: &Path) -> Vec<Complex<f32>> {
-    unimplemented!(
-        "honeyeater_test::npy::load_complex_f32 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `Complex<f32>`.
+pub fn load_complex_f32(path: &Path) -> NpyResult<Vec<Complex<f32>>> {
+    load_1d(path)
 }
 
 /// Load a `.npy` file containing a 1-D array of `Complex<f64>` values.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Stub: always panics.
-#[must_use]
-pub fn load_complex_f64(_path: &Path) -> Vec<Complex<f64>> {
-    unimplemented!(
-        "honeyeater_test::npy::load_complex_f64 is a Phase 0 stub; \
-         implementation deferred to first kernel that needs a .npy reference vector"
-    );
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// is not one-dimensional, contains pickled/object data, or has a dtype that
+/// cannot be deserialised as `Complex<f64>`.
+pub fn load_complex_f64(path: &Path) -> NpyResult<Vec<Complex<f64>>> {
+    load_1d(path)
+}
+
+/// Load a `.npy` file containing integer complex samples stored as an `[N, 2]`
+/// array of real/imaginary pairs.
+fn load_complex_integer_pairs<T>(path: &Path) -> NpyResult<Vec<Complex<T>>>
+where
+    T: npyz::Deserialize + Copy,
+{
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let npy = npyz::NpyFile::new(reader)?;
+
+    if npy.shape().len() != 2 || npy.shape()[1] != 2 {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            format!(
+                "expected an integer complex .npy array with shape [N, 2], found shape {:?}",
+                npy.shape()
+            ),
+        )
+        .into());
+    }
+
+    if npy.uses_pickled_array() {
+        return Err(IoError::new(
+            ErrorKind::InvalidData,
+            "pickled/object .npy arrays are not supported",
+        )
+        .into());
+    }
+
+    let flat_data: Vec<T> = npy.into_vec()?;
+
+    Ok(flat_data
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|chunk| Complex::new(chunk[0], chunk[1]))
+        .collect())
+}
+
+/// Load complex `i8` samples stored as an `[N, 2]` `.npy` integer array.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// does not have shape `[N, 2]`, contains pickled/object data, or has an
+/// incompatible dtype.
+pub fn load_complex_i8(path: &Path) -> NpyResult<Vec<Complex<i8>>> {
+    load_complex_integer_pairs(path)
+}
+
+/// Load complex `i16` samples stored as an `[N, 2]` `.npy` integer array.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// does not have shape `[N, 2]`, contains pickled/object data, or has an
+/// incompatible dtype.
+pub fn load_complex_i16(path: &Path) -> NpyResult<Vec<Complex<i16>>> {
+    load_complex_integer_pairs(path)
+}
+
+/// Load complex `i32` samples stored as an `[N, 2]` `.npy` integer array.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, is not a valid `.npy` file,
+/// does not have shape `[N, 2]`, contains pickled/object data, or has an
+/// incompatible dtype.
+pub fn load_complex_i32(path: &Path) -> NpyResult<Vec<Complex<i32>>> {
+    load_complex_integer_pairs(path)
 }
