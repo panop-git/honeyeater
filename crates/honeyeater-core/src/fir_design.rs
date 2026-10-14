@@ -1,8 +1,6 @@
 use pm_remez::{BandSetting, constant, pm_parameters, pm_remez as parks_mcclellan};
 
-use crate::{
-    blackmanharris_window, hamming_window, hann_window, kaiser_window,
-};
+use crate::{blackmanharris_window, hamming_window, hann_window, kaiser_window};
 
 /// Window functions available to the window-method FIR designers.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -58,11 +56,7 @@ fn validate_cutoff(cutoff_hz: f64, sample_rate: f64) {
     );
 }
 
-fn validate_band(
-    lower_cutoff_hz: f64,
-    upper_cutoff_hz: f64,
-    sample_rate: f64,
-) {
+fn validate_band(lower_cutoff_hz: f64, upper_cutoff_hz: f64, sample_rate: f64) {
     validate_cutoff(lower_cutoff_hz, sample_rate);
     validate_cutoff(upper_cutoff_hz, sample_rate);
 
@@ -91,15 +85,10 @@ fn sinc(x: f64) -> f64 {
 fn ideal_lowpass(offset: f64, cutoff_hz: f64, sample_rate: f64) -> f64 {
     let normalized_cutoff = cutoff_hz / sample_rate;
 
-    2.0 * normalized_cutoff
-        * sinc(2.0 * normalized_cutoff * offset)
+    2.0 * normalized_cutoff * sinc(2.0 * normalized_cutoff * offset)
 }
 
-fn design_windowed<F>(
-    num_taps: usize,
-    window: FirWindow,
-    ideal_response: F,
-) -> Vec<f64>
+fn design_windowed<F>(num_taps: usize, window: FirWindow, ideal_response: F) -> Vec<f64>
 where
     F: Fn(usize, f64) -> f64,
 {
@@ -108,8 +97,7 @@ where
 
     for n in 0..num_taps {
         let offset = usize_to_f64(n) - centre;
-        let coefficient =
-            ideal_response(n, offset) * window.value(n, num_taps);
+        let coefficient = ideal_response(n, offset) * window.value(n, num_taps);
 
         taps.push(coefficient);
     }
@@ -117,13 +105,8 @@ where
     taps
 }
 
-fn response_magnitude(
-    taps: &[f64],
-    frequency_hz: f64,
-    sample_rate: f64,
-) -> f64 {
-    let omega =
-        std::f64::consts::TAU * frequency_hz / sample_rate;
+fn response_magnitude(taps: &[f64], frequency_hz: f64, sample_rate: f64) -> f64 {
+    let omega = std::f64::consts::TAU * frequency_hz / sample_rate;
 
     let mut real = 0.0;
     let mut imaginary = 0.0;
@@ -138,11 +121,7 @@ fn response_magnitude(
     (real * real + imaginary * imaginary).sqrt()
 }
 
-fn normalize_at_frequency(
-    taps: &mut [f64],
-    frequency_hz: f64,
-    sample_rate: f64,
-) {
+fn normalize_at_frequency(taps: &mut [f64], frequency_hz: f64, sample_rate: f64) {
     let gain = response_magnitude(taps, frequency_hz, sample_rate);
 
     assert!(
@@ -180,11 +159,9 @@ pub fn firwin_lowpass(
     validate_common(num_taps, sample_rate);
     validate_cutoff(cutoff_hz, sample_rate);
 
-    let mut taps = design_windowed(
-        num_taps,
-        window,
-        |_, offset| ideal_lowpass(offset, cutoff_hz, sample_rate),
-    );
+    let mut taps = design_windowed(num_taps, window, |_, offset| {
+        ideal_lowpass(offset, cutoff_hz, sample_rate)
+    });
 
     normalize_at_frequency(&mut taps, 0.0, sample_rate);
 
@@ -225,21 +202,13 @@ pub fn firwin_highpass(
 
     let centre_index = num_taps / 2;
 
-    let mut taps = design_windowed(
-        num_taps,
-        window,
-        |n, offset| {
-            let impulse = if n == centre_index { 1.0 } else { 0.0 };
+    let mut taps = design_windowed(num_taps, window, |n, offset| {
+        let impulse = if n == centre_index { 1.0 } else { 0.0 };
 
-            impulse - ideal_lowpass(offset, cutoff_hz, sample_rate)
-        },
-    );
+        impulse - ideal_lowpass(offset, cutoff_hz, sample_rate)
+    });
 
-    normalize_at_frequency(
-        &mut taps,
-        sample_rate / 2.0,
-        sample_rate,
-    );
+    normalize_at_frequency(&mut taps, sample_rate / 2.0, sample_rate);
 
     taps
 }
@@ -270,36 +239,16 @@ pub fn firwin_bandpass(
 ) -> Vec<f64> {
     validate_common(num_taps, sample_rate);
 
-    validate_band(
-        lower_cutoff_hz,
-        upper_cutoff_hz,
-        sample_rate,
-    );
+    validate_band(lower_cutoff_hz, upper_cutoff_hz, sample_rate);
 
-    let mut taps = design_windowed(
-        num_taps,
-        window,
-        |_, offset| {
-            ideal_lowpass(
-                offset,
-                upper_cutoff_hz,
-                sample_rate,
-            ) - ideal_lowpass(
-                offset,
-                lower_cutoff_hz,
-                sample_rate,
-            )
-        },
-    );
+    let mut taps = design_windowed(num_taps, window, |_, offset| {
+        ideal_lowpass(offset, upper_cutoff_hz, sample_rate)
+            - ideal_lowpass(offset, lower_cutoff_hz, sample_rate)
+    });
 
-    let centre_frequency =
-        (lower_cutoff_hz + upper_cutoff_hz) / 2.0;
+    let centre_frequency = lower_cutoff_hz.midpoint(upper_cutoff_hz);
 
-    normalize_at_frequency(
-        &mut taps,
-        centre_frequency,
-        sample_rate,
-    );
+    normalize_at_frequency(&mut taps, centre_frequency, sample_rate);
 
     taps
 }
@@ -331,11 +280,7 @@ pub fn firwin_bandstop(
 ) -> Vec<f64> {
     validate_common(num_taps, sample_rate);
 
-    validate_band(
-        lower_cutoff_hz,
-        upper_cutoff_hz,
-        sample_rate,
-    );
+    validate_band(lower_cutoff_hz, upper_cutoff_hz, sample_rate);
 
     assert!(
         num_taps % 2 == 1,
@@ -344,25 +289,12 @@ pub fn firwin_bandstop(
 
     let centre_index = num_taps / 2;
 
-    let mut taps = design_windowed(
-        num_taps,
-        window,
-        |n, offset| {
-            let impulse = if n == centre_index { 1.0 } else { 0.0 };
+    let mut taps = design_windowed(num_taps, window, |n, offset| {
+        let impulse = if n == centre_index { 1.0 } else { 0.0 };
 
-            impulse
-                + ideal_lowpass(
-                offset,
-                lower_cutoff_hz,
-                sample_rate,
-            )
-                - ideal_lowpass(
-                offset,
-                upper_cutoff_hz,
-                sample_rate,
-            )
-        },
-    );
+        impulse + ideal_lowpass(offset, lower_cutoff_hz, sample_rate)
+            - ideal_lowpass(offset, upper_cutoff_hz, sample_rate)
+    });
 
     normalize_at_frequency(&mut taps, 0.0, sample_rate);
 
@@ -424,7 +356,7 @@ pub fn remez(
     );
 
     assert!(
-        bands_hz.len() % 2 == 0,
+        bands_hz.len().is_multiple_of(2),
         "Parks-McClellan bands must contain start/end pairs"
     );
 
@@ -454,10 +386,7 @@ pub fn remez(
         let weight = weights[band_index];
 
         assert!(
-            start_hz.is_finite()
-                && end_hz.is_finite()
-                && start_hz >= 0.0
-                && end_hz <= nyquist,
+            start_hz.is_finite() && end_hz.is_finite() && start_hz >= 0.0 && end_hz <= nyquist,
             "Parks-McClellan band edges must be finite and within [0, Nyquist]"
         );
 
@@ -492,31 +421,27 @@ pub fn remez(
             constant(desired_amplitude),
             constant(weight),
         )
-            .expect("validated Parks-McClellan band must be accepted");
+        .expect("validated Parks-McClellan band must be accepted");
 
         band_settings.push(setting);
         previous_end = Some(end_hz);
     }
 
-    if num_taps % 2 == 0 {
+    if num_taps.is_multiple_of(2) {
         let final_band_end = bands_hz[bands_hz.len() - 1];
         let final_desired = desired[desired.len() - 1];
 
         assert!(
-            final_band_end < nyquist
-                || final_desired.abs() <= f64::EPSILON,
+            final_band_end < nyquist || final_desired.abs() <= f64::EPSILON,
             "even-length symmetric FIR designs must have zero response at Nyquist"
         );
     }
 
-    let parameters = pm_parameters(
-        num_taps,
-        &band_settings,
-    )
+    let parameters = pm_parameters(num_taps, &band_settings)
         .expect("validated Parks-McClellan parameters must be accepted");
 
-    let design = parks_mcclellan(&parameters)
-        .expect("Parks-McClellan FIR design failed to converge");
+    let design =
+        parks_mcclellan(&parameters).expect("Parks-McClellan FIR design failed to converge");
 
     assert_eq!(
         design.impulse_response.len(),
@@ -544,27 +469,18 @@ mod tests {
         path
     }
 
-    fn frequency_response_db(
-        taps: &[f64],
-        bins: usize,
-        sample_rate: f64,
-    ) -> Vec<f64> {
+    fn frequency_response_db(taps: &[f64], bins: usize, sample_rate: f64) -> Vec<f64> {
         let nyquist = sample_rate / 2.0;
-        let denominator =
-            usize_to_f64(bins - 1);
+        let denominator = usize_to_f64(bins - 1);
 
         let mut response = Vec::with_capacity(bins);
 
         for bin in 0..bins {
-            let frequency =
-                nyquist * usize_to_f64(bin) / denominator;
+            let frequency = nyquist * usize_to_f64(bin) / denominator;
 
-            let magnitude =
-                response_magnitude(taps, frequency, sample_rate);
+            let magnitude = response_magnitude(taps, frequency, sample_rate);
 
-            response.push(
-                20.0 * magnitude.max(f64::MIN_POSITIVE).log10(),
-            );
+            response.push(20.0 * magnitude.max(f64::MIN_POSITIVE).log10());
         }
 
         response
@@ -572,76 +488,37 @@ mod tests {
 
     #[test]
     fn test_firwin_lowpass_matches_scipy_oracle() {
-        let expected = npy::load_f64(
-            &vector_path("lowpass_hamming_63.npy"),
-        )
+        let expected = npy::load_f64(&vector_path("lowpass_hamming_63.npy"))
             .expect("failed to load low-pass FIR design reference vector");
 
-        let actual = firwin_lowpass(
-            63,
-            100_000.0,
-            1_000_000.0,
-            FirWindow::Hamming,
-        );
+        let actual = firwin_lowpass(63, 100_000.0, 1_000_000.0, FirWindow::Hamming);
 
-        assert_close!(
-            actual,
-            expected,
-            rtol = 1e-11,
-            atol = 1e-13,
-        );
+        assert_close!(actual, expected, rtol = 1e-11, atol = 1e-13,);
     }
 
     #[test]
     fn test_firwin_highpass_matches_scipy_oracle() {
-        let expected = npy::load_f64(
-            &vector_path("highpass_kaiser_63.npy"),
-        )
+        let expected = npy::load_f64(&vector_path("highpass_kaiser_63.npy"))
             .expect("failed to load high-pass FIR design reference vector");
 
-        let actual = firwin_highpass(
-            63,
-            150_000.0,
-            1_000_000.0,
-            FirWindow::Kaiser(7.5),
-        );
+        let actual = firwin_highpass(63, 150_000.0, 1_000_000.0, FirWindow::Kaiser(7.5));
 
-        assert_close!(
-            actual,
-            expected,
-            rtol = 1e-11,
-            atol = 1e-13,
-        );
+        assert_close!(actual, expected, rtol = 1e-11, atol = 1e-13,);
     }
 
     #[test]
     fn test_firwin_bandpass_matches_scipy_oracle() {
-        let expected = npy::load_f64(
-            &vector_path("bandpass_hann_64.npy"),
-        )
+        let expected = npy::load_f64(&vector_path("bandpass_hann_64.npy"))
             .expect("failed to load band-pass FIR design reference vector");
 
-        let actual = firwin_bandpass(
-            64,
-            100_000.0,
-            200_000.0,
-            1_000_000.0,
-            FirWindow::Hann,
-        );
+        let actual = firwin_bandpass(64, 100_000.0, 200_000.0, 1_000_000.0, FirWindow::Hann);
 
-        assert_close!(
-            actual,
-            expected,
-            rtol = 1e-11,
-            atol = 1e-13,
-        );
+        assert_close!(actual, expected, rtol = 1e-11, atol = 1e-13,);
     }
 
     #[test]
     fn test_firwin_bandstop_matches_scipy_oracle() {
-        let expected = npy::load_f64(
-            &vector_path("bandstop_blackmanharris_63.npy"),
-        )
+        let expected = npy::load_f64(&vector_path("bandstop_blackmanharris_63.npy"))
             .expect("failed to load band-stop FIR design reference vector");
 
         let actual = firwin_bandstop(
@@ -652,12 +529,7 @@ mod tests {
             FirWindow::BlackmanHarris,
         );
 
-        assert_close!(
-            actual,
-            expected,
-            rtol = 1e-11,
-            atol = 1e-13,
-        );
+        assert_close!(actual, expected, rtol = 1e-11, atol = 1e-13,);
     }
 
     #[test]
@@ -669,32 +541,23 @@ mod tests {
 
         let taps = remez(
             81,
-            &[
-                0.0,
-                PASSBAND_END,
-                STOPBAND_START,
-                SAMPLE_RATE / 2.0,
-            ],
+            &[0.0, PASSBAND_END, STOPBAND_START, SAMPLE_RATE / 2.0],
             &[1.0, 0.0],
             &[1.0, 10.0],
             SAMPLE_RATE,
         );
 
-        let response =
-            frequency_response_db(&taps, BINS, SAMPLE_RATE);
+        let response = frequency_response_db(&taps, BINS, SAMPLE_RATE);
 
-        let mut lower =
-            vec![f64::NEG_INFINITY; BINS];
+        let mut lower = vec![f64::NEG_INFINITY; BINS];
 
-        let mut upper =
-            vec![f64::INFINITY; BINS];
+        let mut upper = vec![f64::INFINITY; BINS];
 
         let nyquist = SAMPLE_RATE / 2.0;
         let denominator = usize_to_f64(BINS - 1);
 
         for bin in 0..BINS {
-            let frequency =
-                nyquist * usize_to_f64(bin) / denominator;
+            let frequency = nyquist * usize_to_f64(bin) / denominator;
 
             if frequency <= PASSBAND_END {
                 lower[bin] = -0.1;
@@ -704,38 +567,19 @@ mod tests {
             }
         }
 
-        assert_spectral_mask!(
-            response,
-            lower = lower,
-            upper = upper,
-        );
+        assert_spectral_mask!(response, lower = lower, upper = upper,);
     }
 
     #[test]
-    #[should_panic(
-        expected = "window-method high-pass FIR requires an odd number of taps"
-    )]
+    #[should_panic(expected = "window-method high-pass FIR requires an odd number of taps")]
     fn test_firwin_highpass_rejects_even_tap_count() {
-        let _ = firwin_highpass(
-            64,
-            100_000.0,
-            1_000_000.0,
-            FirWindow::Hamming,
-        );
+        let _ = firwin_highpass(64, 100_000.0, 1_000_000.0, FirWindow::Hamming);
     }
 
     #[test]
-    #[should_panic(
-        expected = "window-method band-stop FIR requires an odd number of taps"
-    )]
+    #[should_panic(expected = "window-method band-stop FIR requires an odd number of taps")]
     fn test_firwin_bandstop_rejects_even_tap_count() {
-        let _ = firwin_bandstop(
-            64,
-            100_000.0,
-            200_000.0,
-            1_000_000.0,
-            FirWindow::Hamming,
-        );
+        let _ = firwin_bandstop(64, 100_000.0, 200_000.0, 1_000_000.0, FirWindow::Hamming);
     }
 
     #[test]
@@ -745,12 +589,7 @@ mod tests {
     fn test_remez_rejects_even_highpass() {
         let _ = remez(
             64,
-            &[
-                0.0,
-                100_000.0,
-                150_000.0,
-                500_000.0,
-            ],
+            &[0.0, 100_000.0, 150_000.0, 500_000.0],
             &[0.0, 1.0],
             &[10.0, 1.0],
             1_000_000.0,
